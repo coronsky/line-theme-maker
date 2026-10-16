@@ -1,55 +1,815 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LINE Theme Maker</title>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mon Chein 着せかえ工房</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Zen+Maru+Gothic:wght@500;700&display=swap">
 <style>
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#353b36;background:#f6f7f3}*{box-sizing:border-box}body{margin:0}header{padding:28px 20px;background:#e7eee7;border-bottom:1px solid #d8e1d8}main{max-width:1080px;margin:auto;padding:24px 16px}h1{margin:0;font-size:28px}h2{font-size:19px;margin:0 0 14px}.sub{color:#68756c}.panel{background:white;border:1px solid #e0e6df;border-radius:18px;padding:20px;margin:18px 0;box-shadow:0 3px 15px #243b2410}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.slot{border:1px solid #e0e6df;border-radius:14px;padding:14px}.slot strong{display:block;margin-bottom:8px}.preview{height:150px;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 50%/20px 20px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview img{max-width:100%;max-height:100%;object-fit:contain}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button,.button{cursor:pointer;border:0;border-radius:9px;background:#617d69;color:white;padding:10px 14px;font-weight:600}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#e7eee7;color:#36543d}input,select{max-width:100%;padding:9px;border:1px solid #cdd7ce;border-radius:9px;background:white}input[type=file]{width:100%}label{display:block;font-size:13px;margin:10px 0 5px}small{color:#68756c}.notice{padding:12px;background:#fff7e6;border-radius:10px;color:#75582b}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}#status{min-height:22px;color:#3c6748}footer{font-size:12px;color:#69736a;margin:24px 0} .size{color:#718078;font-size:12px}
-</style></head><body><header><main style="padding:0"><h1>🐶 LINE Theme Maker</h1><div class="sub">やさしく、おしゃれなLINE着せかえをブラウザで制作</div></main></header><main>
-<section class="panel"><h2>1. プロジェクト設定</h2><div class="toolbar"><div><label for="project">作品名</label><input id="project" value="bichon-minimal"></div><div><label for="fit">画像の配置</label><select id="fit"><option value="contain">全体を収める（余白あり）</option><option value="cover">全面に敷く（切り抜きあり）</option></select></div></div><p class="notice">これは制作・書き出し用の試作版です。下記のサイズは編集可能な作業用プリセットです。販売申請前に必ず最新のLINE Creators Marketのガイドラインで、必要画像・寸法・ファイル名・容量・構成を照合してください。</p></section>
-<section class="panel"><h2>2. 画像を配置</h2><p class="sub">各枠にPNG/JPEG/WebPをアップロード。拡大率・左右・上下位置を変更できます。PNGの透明部分はそのまま保持します（白背景の写真は自動透過されません）。画像処理はこのブラウザ内で実行されます。</p><div id="slots" class="grid"></div><div class="toolbar" style="margin-top:16px"><button id="add" class="secondary">＋ カスタム枠を追加</button><button id="clear" class="secondary">全画像をクリア</button></div></section>
-<section class="panel"><h2>3. 書き出し</h2><p class="sub">画像は指定したピクセル数に変換し、PNGで保存します。ZIPは作成後に内部のファイル数を検証します。</p><div class="toolbar"><button id="zip">全画像をZIPで保存</button><button id="all" class="secondary">PNGを個別に保存</button></div><p id="status" role="status" aria-live="polite"></p><small>ZIP出力にはJSZipライブラリをCDNから読み込みます。初回はインターネット接続が必要です。</small></section>
-<footer>LINE Theme Maker — unofficial creator utility. LINEおよび関連ロゴは各権利者に帰属します。</footer></main>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+/* Layout: 制作デスク — 左に設定の束、右に作業台（プレビュー／全62枚／取り込み／チェック／申請文／プロンプト） */
+:root{
+  --paper:#eef0f3; --sheet:#ffffff; --ink:#1d2230; --muted:#5d6577; --rule:#d7dbe3;
+  --accent:#2f52cf; --accent-soft:#e3e9fb; --accent-ink:#ffffff;
+  --ok:#1d8556; --warn:#a96300; --err:#c0353a; --ok-soft:#e1f3ea; --warn-soft:#fbefdc; --err-soft:#fbe4e4;
+  --chk1:#ffffff; --chk2:#e6e8ec;
+  --f-display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Consolas",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#14161b; --sheet:#1c1f26; --ink:#e7e9ee; --muted:#9aa2b2; --rule:#2e323c;
+  --accent:#8099ff; --accent-soft:#252d4a; --accent-ink:#0f1320;
+  --ok:#4cc08a; --warn:#e3a646; --err:#ff7a7a; --ok-soft:#18302a; --warn-soft:#352914; --err-soft:#3a1d1f;
+  --chk1:#2a2d35; --chk2:#22252c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#14161b; --sheet:#1c1f26; --ink:#e7e9ee; --muted:#9aa2b2; --rule:#2e323c;
+  --accent:#8099ff; --accent-soft:#252d4a; --accent-ink:#0f1320;
+  --ok:#4cc08a; --warn:#e3a646; --err:#ff7a7a; --ok-soft:#18302a; --warn-soft:#352914; --err-soft:#3a1d1f;
+  --chk1:#2a2d35; --chk2:#22252c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.65 var(--f-body);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0;line-height:1.3}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--sheet);border-bottom:1px solid var(--rule)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--sheet)}
+.top-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:20px;letter-spacing:.02em}
+.brand small{color:var(--muted);font-size:12px}
+.top .spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:var(--accent-soft);color:var(--ink);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.err{background:var(--err-soft);color:var(--err)}
+
+.btn{cursor:pointer;border:1px solid var(--rule);background:var(--sheet);border-radius:8px;padding:8px 14px;font-weight:700;line-height:1.3}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* frame */
+.frame{display:grid;grid-template-columns:330px minmax(0,1fr);gap:18px;align-items:start;max-width:1400px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (max-width:900px){.frame{grid-template-columns:minmax(0,1fr)}.work{order:-1}}
+@media (max-width:560px){.brand small{display:none}.brand h1{font-size:17px}}
+.side{display:flex;flex-direction:column;gap:12px}
+@media (min-width:901px){.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);max-height:calc(100vh - 90px);overflow:auto;padding-right:4px}}
+.box{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:14px}
+.box h2{font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.box h2 .k{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:500}
+.field{display:grid;gap:4px;margin-top:10px}
+.field:first-of-type{margin-top:0}
+.field label,.lab{font-size:12px;color:var(--muted);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input[type=text],input[type=number],select,textarea{width:100%;border:1px solid var(--rule);background:var(--paper);border-radius:8px;padding:7px 9px}
+textarea{resize:vertical;min-height:70px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=file]{font-size:12px;max-width:100%}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sw{display:grid;gap:3px;justify-items:center;font-size:11px;color:var(--muted)}
+.sw input{width:100%;height:34px;border:1px solid var(--rule);border-radius:8px;padding:2px;background:var(--sheet);cursor:pointer}
+.charbox{display:flex;gap:12px;align-items:center}
+.charbox canvas{width:72px;height:72px;border-radius:10px;border:1px solid var(--rule);flex:none}
+.charbox .tx{font-size:12px;color:var(--muted);min-width:0}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+/* tabs */
+.work{min-width:0;display:flex;flex-direction:column;gap:14px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+.tabs button{cursor:pointer;border:0;background:none;padding:9px 12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
+.tabs .n{font-family:var(--f-mono);font-size:11px;margin-left:4px}
+.panel{display:flex;flex-direction:column;gap:14px}
+
+/* preview */
+.mocks{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.mock{display:grid;gap:8px;justify-items:center}
+.mock canvas{width:300px;max-width:100%;height:auto;border-radius:30px;box-shadow:0 0 0 7px var(--ink),0 12px 30px #0003}
+.mock figcaption{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{cursor:pointer;border:0;background:var(--sheet);padding:6px 10px;font-size:12px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.strip{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.strip figure{margin:0;display:grid;gap:4px;justify-items:center}
+.strip canvas{max-width:100%;height:auto}
+.strip figcaption{font-size:11px;color:var(--muted)}
+.store{display:flex;gap:12px;align-items:flex-start;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:12px;max-width:420px}
+.store canvas{width:99px;height:139px;border-radius:6px;flex:none}
+.store .t{font-weight:700}.store .c{color:var(--muted);font-size:12px}.store .d{font-size:12px;margin-top:4px}
+
+/* grid of all images */
+.group{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:14px}
+.group header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:10px}
+.group header h3{font-size:15px}
+.group header .gk{font-family:var(--f-mono);font-weight:500;color:var(--accent);margin-right:2px}
+.group header p{margin:0;font-size:12px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.tiles.wide{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.tile{cursor:pointer;border:1px solid var(--rule);border-radius:10px;background:var(--sheet);padding:6px;display:grid;gap:5px;text-align:left}
+.tile:hover{border-color:var(--accent)}
+.tile .pv{background:repeating-conic-gradient(var(--chk1) 0 25%,var(--chk2) 0 50%) 0 0/14px 14px;border-radius:6px;display:flex;align-items:center;justify-content:center;aspect-ratio:1;overflow:hidden;max-width:100%}
+.tiles.wide .tile .pv{aspect-ratio:auto;height:110px}
+.tile .pv canvas{max-width:100%;max-height:100%}
+.tile .nm{font-family:var(--f-mono);font-size:11px;line-height:1.3;overflow-wrap:anywhere}
+.tile .mt{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;justify-content:space-between}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dot.warn{background:var(--warn)}.dot.err{background:var(--err)}.dot.src{background:var(--accent)}
+.tag{font-size:10px;font-weight:700;border-radius:4px;padding:0 5px;background:var(--accent-soft);color:var(--accent)}
+
+/* check list */
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.issues{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.issue{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;background:var(--sheet);border:1px solid var(--rule);border-left-width:4px;border-radius:10px;padding:10px 12px}
+.issue.err{border-left-color:var(--err)}.issue.warn{border-left-color:var(--warn)}.issue.ok{border-left-color:var(--ok)}
+.issue .lv{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px}
+.issue.err .lv{background:var(--err-soft);color:var(--err)}.issue.warn .lv{background:var(--warn-soft);color:var(--warn)}.issue.ok .lv{background:var(--ok-soft);color:var(--ok)}
+.issue .msg{min-width:0}
+.issue .msg b{font-family:var(--f-mono);font-weight:500;font-size:12px;overflow-wrap:anywhere}
+.issue .how{display:block;font-size:12px;color:var(--muted)}
+
+/* import + text */
+.drop{border:2px dashed var(--rule);border-radius:12px;padding:20px;text-align:center;background:var(--sheet)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop p{margin:4px 0}
+.report{font-size:13px;white-space:pre-wrap;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;max-height:240px;overflow:auto}
+.sheetcells{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px}
+.sheetcells figure{margin:0;display:grid;gap:2px;justify-items:center;font-size:10px;color:var(--muted)}
+.sheetcells canvas{width:100%;aspect-ratio:1;background:repeating-conic-gradient(var(--chk1) 0 25%,var(--chk2) 0 50%) 0 0/10px 10px;border-radius:6px}
+@media (max-width:600px){.sheetcells{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.counter{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.counter.over{color:var(--err);font-weight:700}
+pre.prompt{white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:12px;font:13px/1.7 var(--f-body);margin:0;max-height:360px;overflow:auto}
+table.spec{border-collapse:collapse;font-size:12px;width:100%}
+table.spec th,table.spec td{border-bottom:1px solid var(--rule);padding:5px 8px;text-align:left;vertical-align:top}
+table.spec td.mono{white-space:nowrap}
+.scroll{overflow-x:auto}
+
+/* editor */
+.modal{position:fixed;inset:0;z-index:50;background:#0008;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal .card{background:var(--sheet);border-radius:14px;width:min(760px,100%);max-height:100%;overflow:auto;padding:18px;display:grid;gap:14px}
+.ed{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media (max-width:640px){.ed{grid-template-columns:minmax(0,1fr)}}
+.ed .stage{background:repeating-conic-gradient(var(--chk1) 0 25%,var(--chk2) 0 50%) 0 0/16px 16px;border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:220px;padding:10px}
+.ed .stage canvas{max-width:100%;max-height:340px;image-rendering:auto}
+.ed .bgs{display:flex;gap:6px}
+.ed .bgs canvas{width:56px;height:auto;border-radius:6px;border:1px solid var(--rule)}
+.status{min-height:20px;font-size:13px;color:var(--muted)}
+footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><h1>Mon Chein 着せかえ工房</h1><small>LINE着せかえ 提出用62枚を作る</small></div>
+  <div class="spacer"></div>
+  <span id="topCount" class="pill mono">— 枚</span>
+  <span id="topCheck" class="pill">チェック中…</span>
+  <button id="exportBtn" class="btn primary" type="button">ZIPを書き出す</button>
+</div></header>
+
+<div class="frame">
+<aside class="side" aria-label="デザイン設定">
+  <section class="box">
+    <h2>キャラクター</h2>
+    <div class="charbox"><canvas id="charThumb" width="144" height="144"></canvas>
+      <div class="tx"><span id="charName">サンプルのビション（仮）</span><br>背景透過PNGがいちばんきれいです。</div></div>
+    <div class="field"><label for="charFile">画像を選ぶ</label><input id="charFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></div>
+    <label class="check"><input id="charKnock" type="checkbox"> 白い背景を自動で透過する</label>
+    <div class="field"><label for="charScale">キャラの大きさ <span class="mono" data-out="charScale"></span></label><input id="charScale" data-k="charScale" type="range" min="50" max="130"></div>
+  </section>
+
+  <section class="box">
+    <h2>カラー</h2>
+    <div class="field"><label for="preset">配色プリセット</label><select id="preset"></select></div>
+    <div class="swatches" style="margin-top:10px">
+      <div class="sw"><input id="c_bg" data-k="bg" type="color" aria-label="背景色"><span>背景</span></div>
+      <div class="sw"><input id="c_line" data-k="line" type="color" aria-label="OFFの線"><span>OFF線</span></div>
+      <div class="sw"><input id="c_main" data-k="main" type="color" aria-label="ONの線"><span>ON線</span></div>
+      <div class="sw"><input id="c_accent" data-k="accent" type="color" aria-label="ONの丸"><span>ON丸</span></div>
+      <div class="sw"><input id="c_sub" data-k="sub" type="color" aria-label="サブ色"><span>サブ</span></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>メニューアイコン</h2>
+    <div class="field"><label for="iconStyle">アイコンの描き方</label>
+      <select id="iconStyle" data-k="iconStyle">
+        <option value="line">線アイコン（OFF・ONとも）</option>
+        <option value="charOn">ONだけキャラクターに替える</option>
+      </select></div>
+    <div class="field"><label for="marker">ONの目印</label>
+      <select id="marker" data-k="marker"><option value="blob">丸い背景</option><option value="dot">下に点</option><option value="both">丸い背景＋点</option><option value="none">なし（色だけ）</option></select></div>
+    <div class="field"><label for="iconSize">アイコンの大きさ <span class="mono" data-out="iconSize"></span></label><input id="iconSize" data-k="iconSize" type="range" min="50" max="100"></div>
+    <div class="field"><label for="lineW">線の太さ <span class="mono" data-out="lineW"></span></label><input id="lineW" data-k="lineW" type="range" min="3" max="12" step="0.5"></div>
+    <label class="check"><input id="gOutline" data-k="gOutline" type="checkbox"> iOS 26用にフチを付ける（白・黒どちらの背景でも見やすく）</label>
+  </section>
+
+  <section class="box">
+    <h2>柄</h2>
+    <div class="field"><label for="pattern">背景の柄</label>
+      <select id="pattern" data-k="pattern"><option value="none">なし</option><option value="paws">肉球</option><option value="dots">水玉</option><option value="stripe">ストライプ</option><option value="check">ギンガム</option></select></div>
+    <div class="field"><label for="patternAlpha">柄の濃さ <span class="mono" data-out="patternAlpha"></span></label><input id="patternAlpha" data-k="patternAlpha" type="range" min="10" max="100"></div>
+  </section>
+
+  <section class="box">
+    <h2>パスコード・プロフィール</h2>
+    <div class="field"><label for="passMode">パスコードの絵</label>
+      <select id="passMode" data-k="passMode"><option value="char">キャラクター（OFFは薄く）</option><option value="paw">肉球</option></select></div>
+    <label class="check"><input id="passFour" data-k="passFour" type="checkbox"> 4桁を4種類の色にする</label>
+    <label class="check"><input id="passDigits" data-k="passDigits" type="checkbox"> 桁の番号を入れる</label>
+    <label class="check"><input id="groupPair" data-k="groupPair" type="checkbox"> グループ用はキャラを2体並べる</label>
+  </section>
+
+  <section class="box">
+    <h2>背景・文字</h2>
+    <label class="check"><input id="menuBg" data-k="menuBg" type="checkbox"> メニュー背景（i_11）を入れる</label>
+    <div class="field"><label for="menuBgTop">メニュー背景の上を透過 <span class="mono" data-out="menuBgTop"></span></label><input id="menuBgTop" data-k="menuBgTop" type="range" min="0" max="49"></div>
+    <label class="check"><input id="talkBg" data-k="talkBg" type="checkbox"> トーク背景（i_22・a_22）を入れる</label>
+    <label class="check"><input id="talkClear" data-k="talkClear" type="checkbox"> トーク背景を透過にする（カラースキンに重ねる）</label>
+    <div class="field"><label for="thumbText">メイン画像の文字（空欄で文字なし）</label><input id="thumbText" data-k="thumbText" type="text" maxlength="24"></div>
+  </section>
+  <p class="hint">設定はこのブラウザに保存されます。画像は保存されないので、書き出したZIPを残してください。</p>
+</aside>
+
+<main class="work">
+  <nav class="tabs" role="tablist" aria-label="作業">
+    <button role="tab" data-tab="preview" aria-selected="true">プレビュー</button>
+    <button role="tab" data-tab="all" aria-selected="false">全画像<span class="n" id="tabAllN"></span></button>
+    <button role="tab" data-tab="import" aria-selected="false">取り込み</button>
+    <button role="tab" data-tab="check" aria-selected="false">チェック<span class="n" id="tabCheckN"></span></button>
+    <button role="tab" data-tab="text" aria-selected="false">申請テキスト</button>
+    <button role="tab" data-tab="prompt" aria-selected="false">ChatGPTプロンプト</button>
+  </nav>
+
+  <section class="panel" data-panel="preview">
+    <div class="toolbar">
+      <span class="lab">メニュー表示</span>
+      <div class="seg" id="segMode"><button data-v="classic" aria-pressed="true">iOS 26未満・Android</button><button data-v="ios26" aria-pressed="false">iOS 26以降</button></div>
+      <div class="seg" id="segTabs"><button data-v="b" aria-pressed="true">VOOM・TODAY・ウォレット</button><button data-v="a" aria-pressed="false">ショッピング・ニュース・アプリ</button></div>
+      <label class="check" style="margin:0"><input id="mockBadge" type="checkbox" checked> バッジを表示</label>
+    </div>
+    <div class="mocks">
+      <figure class="mock"><canvas id="mockList" width="750" height="1500" aria-label="トーク一覧とメニューのプレビュー"></canvas><figcaption>トーク一覧（メニューをタップで切り替え）</figcaption></figure>
+      <figure class="mock"><canvas id="mockTalk" width="750" height="1500" aria-label="トークルームのプレビュー"></canvas><figcaption>トークルーム（iOS縦向きは中央640px幅が見えます）</figcaption></figure>
+    </div>
+    <h3 style="font-size:15px">パスコード・プロフィール・ストア</h3>
+    <div class="strip">
+      <figure><canvas id="mockPass" width="560" height="160"></canvas><figcaption>パスコード（2桁入力した状態）</figcaption></figure>
+      <figure><canvas id="mockProf" width="260" height="130"></canvas><figcaption>プロフィール（丸く切り抜き）</figcaption></figure>
+    </div>
+    <div class="store"><canvas id="mockStore" width="198" height="278"></canvas><div><div class="t" id="storeTitle"></div><div class="c" id="storeCreator"></div><div class="d" id="storeDesc"></div></div></div>
+  </section>
+
+  <section class="panel" data-panel="all" hidden>
+    <p class="hint" style="margin:0">タイルを押すと、その1枚だけ画像を差し替えたり位置を直したりできます。青い点は差し替え済み、黄・赤はチェックで注意が出ている画像です。</p>
+    <div id="groups" class="panel"></div>
+  </section>
+
+  <section class="panel" data-panel="import" hidden>
+    <div class="box">
+      <h2>作成済みの画像・ZIPをまとめて取り込む</h2>
+      <div class="drop" id="drop"><p><b>ZIP、またはPNGをここにドロップ</b></p><p class="hint">ファイル名（i_04.png など）で該当の枠に入ります。GIF・JPEG・WebPはPNGに変換します。</p>
+        <input id="bulkFile" type="file" multiple accept=".zip,application/zip,image/png,image/jpeg,image/webp,image/gif"></div>
+      <div id="importReport" class="report" hidden></div>
+      <div class="row" style="margin-top:10px"><button id="clearOverrides" class="btn small" type="button">差し替えをすべて外す</button></div>
+    </div>
+    <div class="box">
+      <h2>アイコン素材シート（3×3）から切り出す</h2>
+      <p class="hint" style="margin-top:0">ChatGPTで作った「9個のアイコンが3×3に並んだ画像」を読み込むと、マスごとに切り出してメニューに入れます。並び順は「ChatGPTプロンプト」タブのとおりです。</p>
+      <div class="two">
+        <div class="field"><label for="sheetOn">ON用シート（必須）</label><input id="sheetOn" type="file" accept="image/png,image/jpeg,image/webp"></div>
+        <div class="field"><label for="sheetOff">OFF用シート（なければONから作ります）</label><input id="sheetOff" type="file" accept="image/png,image/jpeg,image/webp"></div>
+      </div>
+      <label class="check"><input id="sheetKnock" type="checkbox" checked> マスの背景色を透過する</label>
+      <div class="field"><label for="sheetTol">透過のしきい値 <span class="mono" id="sheetTolOut"></span></label><input id="sheetTol" type="range" min="5" max="90" value="40"></div>
+      <div class="field"><label for="offMode">OFFの作り方（OFF用シートがないとき）</label><select id="offMode"><option value="gray">ONをグレーにして薄くする</option><option value="tint">ONを「OFF線」の色で塗る</option><option value="same">ONと同じ絵（色だけ目印で区別）</option></select></div>
+      <div id="sheetPreview" class="sheetcells" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:10px"><button id="sheetClear" class="btn small" type="button">シートを外して線アイコンに戻す</button></div>
+    </div>
+  </section>
+
+  <section class="panel" data-panel="check" hidden>
+    <div class="summary" id="checkSummary"></div>
+    <ul class="issues" id="issues"></ul>
+    <details class="box"><summary><b>このツールが使っている規定（公式ガイドライン詳細より）</b></summary><div class="scroll" style="margin-top:10px"><table class="spec" id="specTable"></table></div>
+      <p class="hint">出典：LINE Creators Market「制作ガイドライン（詳細）」（2026年10月に確認）。トップページの一覧は「60個（メニューボタン34個）」ですが、詳細ページの表はメニュー36個・メイン3個で計62個です。このツールは詳細ページに合わせています。申請前に最新版を確認してください。</p></details>
+  </section>
+
+  <section class="panel" data-panel="text" hidden>
+    <div class="box">
+      <h2>申請テキスト</h2>
+      <p class="hint" style="margin-top:0">全角は2文字として数えます。絵文字は使えません。</p>
+      <div class="field"><label for="tTitle">着せかえタイトル（40）</label><input id="tTitle" data-k="tTitle" type="text"><div class="counter" data-count="tTitle"></div></div>
+      <div class="field"><label for="tDesc">着せかえ説明文（160）</label><textarea id="tDesc" data-k="tDesc"></textarea><div class="counter" data-count="tDesc"></div></div>
+      <div class="field"><label for="tCreator">クリエイター名（50）</label><input id="tCreator" data-k="tCreator" type="text"><div class="counter" data-count="tCreator"></div></div>
+      <div class="field"><label for="tCopy">コピーライト（50・英数字のみ）</label><input id="tCopy" data-k="tCopy" type="text"><div class="counter" data-count="tCopy"></div></div>
+      <div class="field"><label for="zipName">ZIPのファイル名</label><input id="zipName" data-k="zipName" type="text"></div>
+    </div>
+  </section>
+
+  <section class="panel" data-panel="prompt" hidden>
+    <div class="box">
+      <h2>素材づくり用のプロンプト</h2>
+      <div class="two">
+        <div class="field"><label for="motif">モチーフ</label><input id="motif" data-k="motif" type="text"></div>
+        <div class="field"><label for="taste">テイスト</label><input id="taste" data-k="taste" type="text"></div>
+      </div>
+      <label class="check"><input id="refImg" data-k="refImg" type="checkbox"> 参考画像を添付して使う</label>
+      <p class="hint">色はいまの配色（ON線・ON丸・サブ）を入れています。</p>
+    </div>
+    <div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">① アイコン素材シート（ON用）</h2><button class="btn small" data-copy="pIcons" type="button">コピー</button></div><pre class="prompt" id="pIcons" style="margin-top:10px"></pre></div>
+    <div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">② キャラクター画像</h2><button class="btn small" data-copy="pChar" type="button">コピー</button></div><pre class="prompt" id="pChar" style="margin-top:10px"></pre></div>
+    <div class="box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">③ OFF用シート（任意）</h2><button class="btn small" data-copy="pOff" type="button">コピー</button></div><pre class="prompt" id="pOff" style="margin-top:10px"></pre></div>
+  </section>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+</main>
+</div>
+<footer class="foot">Mon Chein 着せかえ工房 — 非公式の制作ツールです。画像の処理はすべてこのブラウザの中で行い、どこにも送信しません。LINEは LY Corporation の商標です。</footer>
+
+<div class="modal" id="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+    <div class="row" style="justify-content:space-between"><div><h2 id="edTitle" style="font-size:17px"></h2><div class="mono hint" id="edMeta" style="margin:0"></div></div><button class="btn small" id="edClose" type="button">閉じる</button></div>
+    <div class="ed">
+      <div style="display:grid;gap:8px"><div class="stage"><canvas id="edCanvas"></canvas></div>
+        <div class="bgs" id="edBgs" hidden><span class="hint" style="margin:0">白・黒の上</span><canvas id="edW"></canvas><canvas id="edB"></canvas></div></div>
+      <div>
+        <div class="field"><label for="edFile">この枠の画像を差し替える</label><input id="edFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></div>
+        <div id="edCtrls">
+          <div class="field"><label for="edFit">合わせ方</label><select id="edFit"><option value="contain">全体を収める</option><option value="cover">枠いっぱいに敷く</option></select></div>
+          <div class="field"><label for="edZoom">拡大 <span class="mono" id="edZoomOut"></span></label><input id="edZoom" type="range" min="10" max="300"></div>
+          <div class="field"><label for="edX">左右 <span class="mono" id="edXOut"></span></label><input id="edX" type="range" min="-100" max="100"></div>
+          <div class="field"><label for="edY">上下 <span class="mono" id="edYOut"></span></label><input id="edY" type="range" min="-100" max="100"></div>
+          <label class="check"><input id="edFill" type="checkbox"> 背景色で塗りつぶす（透過をなくす）</label>
+          <label class="check"><input id="edKnock" type="checkbox"> 白い背景を透過する</label>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn small" id="edReset" type="button">自動生成に戻す</button></div>
+        <p class="hint" id="edNote"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
-const presets=[
-{name:"メイン画像",file:"main.png",w:200,h:200},
-{name:"メニューボタン（通常）",file:"menu-default.png",w:128,h:150},
-{name:"メニューボタン（選択）",file:"menu-selected.png",w:128,h:150},
-{name:"背景画像",file:"background.png",w:720,h:1280},
-{name:"プロフィール画像",file:"profile.png",w:240,h:240}
+/* ============ 仕様（LINE Creators Market 制作ガイドライン詳細 / 2026-10 確認） ============ */
+const MENU=[
+  {key:"home",label:"ホーム",off:"29",on:"30"},
+  {key:"talk",label:"トーク",off:"03",on:"04"},
+  {key:"voom",label:"VOOM",off:"33",on:"34"},
+  {key:"shop",label:"ショッピング",off:"35",on:"36"},
+  {key:"call",label:"通話",off:"07",on:"08"},
+  {key:"news",label:"ニュース",off:"25",on:"26"},
+  {key:"today",label:"TODAY",off:"31",on:"32"},
+  {key:"wallet",label:"ウォレット",off:"27",on:"28"},
+  {key:"apps",label:"アプリ",off:"37",on:"38"}
 ];
-let items=presets.map(p=>({...p,image:null,url:null,scale:100,offsetX:0,offsetY:0}));
-const $=id=>document.getElementById(id), status=s=>$("status").textContent=s;
-function safeName(s){return String(s).replace(/[^a-zA-Z0-9._-]/g,"_").replace(/^\.+/,"").slice(0,70)||"image"}
-function render(){
- const root=$("slots");root.replaceChildren();
- items.forEach((it,i)=>{
- const card=document.createElement("article");card.className="slot";
- const title=document.createElement("strong");title.textContent=it.name;
- const preview=document.createElement("div");preview.className="preview";
- if(it.url){const img=document.createElement("img");img.src=it.url;img.alt=it.name+" プレビュー";preview.append(img)}else{const span=document.createElement("small");span.textContent="画像未設定";preview.append(span)}
- const dims=document.createElement("div");dims.className="controls";
- const w=numberInput(it.w,"幅",v=>it.w=v),h=numberInput(it.h,"高さ",v=>it.h=v);dims.append(w,h);
- const scale=numberInput(it.scale,"拡大率 %",v=>it.scale=v,10,400),ox=numberInput(it.offsetX,"左右位置 px",v=>it.offsetX=v,-4096,4096),oy=numberInput(it.offsetY,"上下位置 px",v=>it.offsetY=v,-4096,4096);dims.append(scale,ox,oy);
- const label=document.createElement("label");label.textContent="画像を選択";
- const upload=document.createElement("input");upload.type="file";upload.accept="image/png,image/jpeg,image/webp";upload.setAttribute("aria-label",it.name+" の画像");upload.addEventListener("change",async e=>{
- const file=e.target.files?.[0];if(!file)return;
- if(!/^image\/(png|jpeg|webp)$/.test(file.type)){status("対応していない画像形式です");return}
- try{const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{if(it.url)URL.revokeObjectURL(it.url);it.url=url;it.image=img;render();status(it.name+" を読み込みました")};img.onerror=()=>{URL.revokeObjectURL(url);status("画像を読み込めませんでした")};img.src=url}catch(err){status(String(err))}
- });
- label.append(upload);
- const controls=document.createElement("div");controls.className="controls";
- const dl=document.createElement("button");dl.textContent="PNG保存";dl.disabled=!it.image;dl.addEventListener("click",async()=>{try{download(await pngBlob(it),safeName(it.file));status(it.name+" を保存しました")}catch(e){status("保存失敗: "+e.message)}});
- const remove=document.createElement("button");remove.className="secondary";remove.textContent="画像を外す";remove.disabled=!it.image;remove.addEventListener("click",()=>{if(it.url)URL.revokeObjectURL(it.url);it.url=null;it.image=null;render()});
- controls.append(dl,remove);card.append(title,preview,dims,label,controls);root.append(card)
- });
-}
-function numberInput(value,title,change,min=1,max=4096){const wrap=document.createElement("div");const lab=document.createElement("label");lab.textContent=title+" px";const input=document.createElement("input");input.type="number";input.min=String(min);input.max=String(max);input.value=value;input.style.width="95px";input.addEventListener("change",()=>{const n=Number(input.value);if(Number.isInteger(n)&&n>=min&&n<=max)change(n);else{input.value=value;status(title+" は "+min+"〜"+max+" の整数で指定してください")}});wrap.append(lab,input);return wrap}
-async function pngBlob(it){if(!it.image)throw Error("画像がありません");const canvas=document.createElement("canvas");canvas.width=it.w;canvas.height=it.h;const ctx=canvas.getContext("2d");const im=it.image;const ratio=$("fit").value==="cover"?Math.max(it.w/im.naturalWidth,it.h/im.naturalHeight):Math.min(it.w/im.naturalWidth,it.h/im.naturalHeight);const factor=(it.scale??100)/100;const w=im.naturalWidth*ratio*factor,h=im.naturalHeight*ratio*factor;ctx.drawImage(im,(it.w-w)/2+(it.offsetX??0),(it.h-h)/2+(it.offsetY??0),w,h);return await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("PNG変換に失敗")),"image/png"))}
-function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}
-$("add").onclick=()=>{const n=items.length+1;items.push({name:"カスタム画像 "+n,file:"custom-"+n+".png",w:240,h:240,image:null,url:null,scale:100,offsetX:0,offsetY:0});render()};
-$("clear").onclick=()=>{items.forEach(it=>{if(it.url)URL.revokeObjectURL(it.url);it.url=null;it.image=null});render();status("画像をクリアしました")};
-$("all").onclick=async()=>{const chosen=items.filter(it=>it.image);if(!chosen.length){status("先に画像を追加してください");return}try{for(const it of chosen)download(await pngBlob(it),safeName(it.file));status(chosen.length+"枚のPNG保存を開始しました。ブラウザによっては複数ダウンロードの許可が必要です。")}catch(e){status(e.message)}};
-$("zip").onclick=async()=>{const chosen=items.filter(it=>it.image);if(!chosen.length){status("先に画像を追加してください");return}if(typeof JSZip==="undefined"){status("ZIPライブラリを読み込めません。ネット接続を確認してください");return}const btn=$("zip");btn.disabled=true;status("ZIPを作成中…");try{const zip=new JSZip();const manifest=[];for(const it of chosen){const name=safeName(it.file);zip.file(name,await pngBlob(it));manifest.push({name:it.name,file:name,width:it.w,height:it.h,scale:it.scale,offsetX:it.offsetX,offsetY:it.offsetY})}zip.file("manifest.json",JSON.stringify({project:$("project").value,images:manifest,note:"制作支援用。LINE申請仕様は別途確認"},null,2));const result=await zip.generateAsync({type:"blob"});const checked=await JSZip.loadAsync(result);const expected=chosen.length+1;const count=Object.keys(checked.files).filter(n=>!checked.files[n].dir).length;if(count!==expected)throw Error("ZIPのファイル数が一致しません");download(result,safeName($("project").value)+".zip");status(chosen.length+"枚をZIPにまとめ、"+count+"ファイルを検証しました")}catch(e){status("ZIP作成失敗: "+e.message)}finally{btn.disabled=false}};
-render();
-</script></body></html>
+const TABSETS={a:["home","talk","shop","news","apps"],b:["home","talk","voom","today","wallet"]};
+const GROUPS=[
+  {id:"A",title:"メイン画像",note:"ストア・着せかえショップに出る画像。透過不可。"},
+  {id:"B",title:"メニューボタン（iOS 26未満・Android）",note:"128×150px。外枠とアイコンの間に10pxほど余白。バッジ33pxが上から49px・右から21pxに出ます。"},
+  {id:"G",title:"メニューボタン（iOS 26以降）",note:"80×56px。メニュー背景の写真や色の影響を受けるので、白・黒どちらの上でも見えるか確認。"},
+  {id:"C",title:"メニュー背景（任意）",note:"1472×150px・左揃えで横に繰り返し。両端の絵柄をつなげる。透過部分は黒く出ることがあります。"},
+  {id:"D",title:"パスコード",note:"偶数番号がOFF、奇数番号がON。iOS 120px、Android 116px。"},
+  {id:"E",title:"プロフィール",note:"丸く切り抜かれますが、タップすると四隅まで見えます。"},
+  {id:"F",title:"トークルーム背景（任意）",note:"1MB以下。iOSは入力欄の上に中央下揃え（縦向きは中央640px幅）、Androidは下が入力欄と重なります。"}
+];
+const TALK_LIMIT=1000000; // 1MB以下（安全側に100万バイト）
+const SPEC=[];
+const sp=o=>{SPEC.push(o);return o};
+sp({name:"ios_thumbnail.png",w:200,h:284,group:"A",kind:"thumb",opaque:true,label:"メイン iOS"});
+sp({name:"android_thumbnail.png",w:136,h:202,group:"A",kind:"thumb",opaque:true,label:"メイン Android"});
+sp({name:"store_thumbnail.png",w:198,h:278,group:"A",kind:"thumb",opaque:true,label:"メイン LINE STORE"});
+for(const g of [false,true])for(const m of MENU)for(const on of [false,true])
+  sp({name:`i_${on?m.on:m.off}${g?"_g":""}.png`,w:g?80:128,h:g?56:150,group:g?"G":"B",kind:"menu",menu:m.key,on,g,label:`${m.label} ${on?"ON":"OFF"}`});
+sp({name:"i_11.png",w:1472,h:150,group:"C",kind:"menubg",optional:"menuBg",label:"メニュー背景"});
+for(const os of ["i","a"])for(let n=12;n<=19;n++){const s=os==="i"?120:116;sp({name:`${os}_${n}.png`,w:s,h:s,group:"D",kind:"pass",digit:((n-12)>>1)+1,on:n%2===1,os,label:`${((n-12)>>1)+1}桁目 ${n%2?"ON":"OFF"}（${os==="i"?"iOS":"Android"}）`})}
+for(const os of ["i","a"])for(const n of [20,21]){const s=os==="i"?240:247;sp({name:`${os}_${n}.png`,w:s,h:s,group:"E",kind:"profile",grp:n===21,os,label:`${n===21?"グループ":"個人"}（${os==="i"?"iOS":"Android"}）`})}
+sp({name:"i_22.png",w:1482,h:1334,group:"F",kind:"talk",os:"i",optional:"talkBg",flexible:true,maxBytes:TALK_LIMIT,label:"トーク背景 iOS"});
+sp({name:"a_22.png",w:1300,h:1300,group:"F",kind:"talk",os:"a",optional:"talkBg",flexible:true,maxBytes:TALK_LIMIT,label:"トーク背景 Android"});
+if(SPEC.length!==62)throw Error("仕様の枚数が62ではありません: "+SPEC.length);
+const BYNAME=new Map(SPEC.map(s=>[s.name,s]));
+
+/* ============ 設定 ============ */
+const PRESETS={
+  milk:{label:"ミルク×セージ",bg:"#f6f1e8",line:"#a2ad9e",main:"#56705a",accent:"#dbe7d4",sub:"#efdcd0"},
+  sakura:{label:"さくらミルク",bg:"#fbf1f0",line:"#c8a3a6",main:"#94606a",accent:"#f6d7da",sub:"#ece2d2"},
+  sky:{label:"ブルーグレー",bg:"#eef2f6",line:"#98a8b8",main:"#45607a",accent:"#d4e1ee",sub:"#f1e2cc"},
+  honey:{label:"ハニー",bg:"#fbf3e2",line:"#c2a26a",main:"#7e5f25",accent:"#f4dfaa",sub:"#ead2c2"},
+  night:{label:"ミッドナイト",bg:"#23272f",line:"#7d8898",main:"#f1eadb",accent:"#3c4659",sub:"#c8a66c"}
+};
+const DEF={preset:"milk",...PRESETS.milk,charScale:90,iconStyle:"line",marker:"blob",iconSize:78,lineW:7,gOutline:true,
+  pattern:"paws",patternAlpha:45,passMode:"char",passFour:false,passDigits:false,groupPair:true,
+  menuBg:true,menuBgTop:0,talkBg:true,talkClear:false,thumbText:"bichon days",
+  tTitle:"ふわり、ビションのやさしい日々",tDesc:"まんまるビションと過ごす、ふんわり穏やかな毎日。ミルクホワイトとくすみグリーンのシンプルな着せかえです。",tCreator:"Mon Chein",tCopy:"(c)Mon Chein",zipName:"mon-chein-theme",
+  motif:"白いビションフリーゼ（ふわふわの丸い顔）",taste:"韓国ミニマル、やさしい細めの線、くすみカラー",refImg:true};
+delete DEF.label;
+const KEY="monchein-theme-studio-v1";
+let st={...DEF};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")for(const k of Object.keys(DEF))if(k in s&&typeof s[k]===typeof DEF[k])st[k]=s[k]}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+
+/* ============ 状態 ============ */
+const S={char:null,charGray:null,charLabel:"サンプルのビション（仮）",over:new Map(),sheet:{on:null,off:null},cv:new Map(),blob:new Map(),shrink:new Map(),issues:[],ver:0};
+
+/* ============ 小道具 ============ */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function el(t,a={},...k){const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n==="class")e.className=v;else if(n==="text")e.textContent=v;else if(n.startsWith("on"))e.addEventListener(n.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(n,v===true?"":v)}for(const c of k)if(c!=null)e.append(c);return e}
+function mk(w,h){const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c}
+function setStatus(t){$("#status").textContent=t}
+function hex(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function rgb(a){return"#"+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("")}
+function mix(a,b,t){const x=hex(a),y=hex(b);return rgb(x.map((v,i)=>v+(y[i]-v)*t))}
+function lum(h){const[r,g,b]=hex(h).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4});return .2126*r+.7152*g+.0722*b}
+function circle(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}
+function blobToImg(b){return createImageBitmap(b)}
+function toCanvas(src){const c=mk(src.width,src.height);c.getContext("2d").drawImage(src,0,0);return c}
+function canvasBlob(c){return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(Error("PNGに変換できませんでした")),"image/png"))}
+function download(blob,name){const u=URL.createObjectURL(blob),a=el("a",{href:u,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+/* 背景の透過（四辺からの塗りつぶし） */
+function knockout(cv,tol=40){const c=cv.getContext("2d"),w=cv.width,h=cv.height,d=c.getImageData(0,0,w,h),p=d.data;
+  const cs=[0,w-1,(h-1)*w,(h-1)*w+w-1];let ref=[0,0,0],n=0;for(const i of cs){if(p[i*4+3]>200){ref[0]+=p[i*4];ref[1]+=p[i*4+1];ref[2]+=p[i*4+2];n++}}
+  if(!n)return cv;ref=ref.map(v=>v/n);const t2=tol*tol*3,seen=new Uint8Array(w*h),stack=new Int32Array(w*h);let sp=0;
+  const push=i=>{if(!seen[i]){seen[i]=1;stack[sp++]=i}};
+  for(let x=0;x<w;x++){push(x);push((h-1)*w+x)}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+  while(sp){const i=stack[--sp],o=i*4,dr=p[o]-ref[0],dg=p[o+1]-ref[1],db=p[o+2]-ref[2],dd=dr*dr+dg*dg+db*db;
+    if(p[o+3]<10||dd<=t2){p[o+3]=dd>t2*.5?Math.min(p[o+3],Math.round(255*(dd-t2*.5)/(t2*.5))):0;const x=i%w,y=(i-x)/w;if(x>0)push(i-1);if(x<w-1)push(i+1);if(y>0)push(i-w);if(y<h-1)push(i+w)}}
+  c.putImageData(d,0,0);return cv}
+function bbox(cv,th=16){const w=cv.width,h=cv.height,p=cv.getContext("2d").getImageData(0,0,w,h).data;let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(p[(y*w+x)*4+3]>th){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}}
+function trim(cv){const b=bbox(cv);if(!b)return null;const pad=Math.round(Math.max(b.w,b.h)*.04),o=mk(b.w+pad*2,b.h+pad*2);o.getContext("2d").drawImage(cv,b.x,b.y,b.w,b.h,pad,pad,b.w,b.h);return o}
+function grayOf(cv,alpha=.55,tint=null){const o=toCanvas(cv),c=o.getContext("2d"),d=c.getImageData(0,0,o.width,o.height),p=d.data,t=tint?hex(tint):null;
+  for(let i=0;i<p.length;i+=4){const l=.3*p[i]+.59*p[i+1]+.11*p[i+2];if(t){const k=l/255*.35;p[i]=t[0]+(255-t[0])*k;p[i+1]=t[1]+(255-t[1])*k;p[i+2]=t[2]+(255-t[2])*k}else{const v=150+l*.38;p[i]=p[i+1]=p[i+2]=v}p[i+3]*=t?1:alpha}
+  c.putImageData(d,0,0);return o}
+function drawContain(c,img,cx,cy,mw,mh,alpha=1){if(!img)return;const s=Math.min(mw/img.width,mh/img.height),w=img.width*s,h=img.height*s;c.save();c.globalAlpha*=alpha;c.drawImage(img,cx-w/2,cy-h/2,w,h);c.restore()}
+
+/* ============ サンプルキャラクター（ふわふわビション） ============ */
+function sampleDog(){const S0=600,cv=mk(S0,S0),c=cv.getContext("2d"),ol="#6d625b";
+  const ears=[[150,345,78,118,-.25],[450,345,78,118,.25]],head=[[300,300,165]];
+  for(let a=0;a<12;a++){const t=a/12*Math.PI*2;head.push([300+Math.cos(t)*150,300+Math.sin(t)*140,72])}
+  const shapes=(pad,col)=>{c.fillStyle=col;for(const[x,y,rx,ry,r]of ears){c.beginPath();c.ellipse(x,y,rx+pad,ry+pad,r,0,Math.PI*2);c.fill()}};
+  shapes(7,ol);shapes(0,"#f6f1ea");
+  c.fillStyle=ol;for(const[x,y,r]of head){c.beginPath();c.arc(x,y,r+7,0,Math.PI*2);c.fill()}
+  c.fillStyle="#ffffff";for(const[x,y,r]of head){c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}
+  c.globalAlpha=.5;circle(c,215,368,30,"#f4c4c0");circle(c,385,368,30,"#f4c4c0");c.globalAlpha=1;
+  for(const x of [240,360]){circle(c,x,318,22,"#2c2522");circle(c,x+7,310,7,"#ffffff")}
+  c.fillStyle="#2c2522";c.beginPath();c.ellipse(300,362,22,16,0,0,Math.PI*2);c.fill();
+  c.strokeStyle="#2c2522";c.lineWidth=6;c.lineCap="round";c.beginPath();c.moveTo(300,378);c.quadraticCurveTo(300,398,280,402);c.moveTo(300,378);c.quadraticCurveTo(300,398,320,402);c.stroke();
+  return cv}
+
+/* ============ アイコン（100×100の箱で設計） ============ */
+const ICON={
+  home(c){c.beginPath();c.moveTo(12,50);c.lineTo(50,17);c.lineTo(88,50);c.moveTo(24,41);c.lineTo(24,84);c.lineTo(76,84);c.lineTo(76,41);c.moveTo(42,84);c.lineTo(42,63);c.lineTo(58,63);c.lineTo(58,84);c.stroke()},
+  talk(c){c.beginPath();c.moveTo(34,18);c.arcTo(88,18,88,70,20);c.arcTo(88,70,12,70,20);c.lineTo(52,70);c.lineTo(32,87);c.lineTo(35,70);c.arcTo(12,70,12,18,20);c.arcTo(12,18,88,18,20);c.closePath();c.stroke()},
+  voom(c){c.beginPath();c.roundRect(14,20,72,60,16);c.stroke();c.beginPath();c.moveTo(43,37);c.lineTo(63,50);c.lineTo(43,63);c.closePath();c.stroke()},
+  shop(c){c.beginPath();c.moveTo(20,38);c.lineTo(80,38);c.lineTo(75,86);c.lineTo(25,86);c.closePath();c.stroke();c.beginPath();c.moveTo(36,46);c.lineTo(36,32);c.arc(50,32,14,Math.PI,0);c.lineTo(64,46);c.stroke()},
+  call(c){c.save();c.translate(50,54);c.rotate(-Math.PI/5);c.beginPath();c.moveTo(-38,16);c.lineTo(-38,-4);c.quadraticCurveTo(-38,-24,-18,-26);c.quadraticCurveTo(0,-29,18,-26);c.quadraticCurveTo(38,-24,38,-4);c.lineTo(38,16);c.lineTo(20,16);c.lineTo(20,3);c.quadraticCurveTo(0,-7,-20,3);c.lineTo(-20,16);c.closePath();c.stroke();c.restore()},
+  news(c){c.beginPath();c.roundRect(18,16,64,70,9);c.stroke();c.beginPath();for(const[y,x2]of [[34,70],[48,70],[61,62],[73,54]]){c.moveTo(31,y);c.lineTo(x2,y)}c.stroke()},
+  today(c){c.beginPath();c.roundRect(16,24,68,60,11);c.moveTo(16,42);c.lineTo(84,42);c.moveTo(35,15);c.lineTo(35,30);c.moveTo(65,15);c.lineTo(65,30);c.stroke();c.beginPath();c.arc(50,63,6,0,Math.PI*2);c.fill()},
+  wallet(c){c.beginPath();c.roundRect(14,30,72,52,11);c.stroke();c.beginPath();c.moveTo(24,30);c.lineTo(64,15);c.lineTo(70,30);c.stroke();c.beginPath();c.roundRect(58,47,28,18,7);c.stroke();c.beginPath();c.arc(68,56,3.5,0,Math.PI*2);c.fill()},
+  apps(c){c.beginPath();for(const[x,y]of [[17,17],[56,17],[17,56],[56,56]])c.roundRect(x,y,27,27,8);c.stroke()}
+};
+function drawIcon(c,key,cx,cy,box,color,lwPx){c.save();c.translate(cx-box/2,cy-box/2);c.scale(box/100,box/100);c.strokeStyle=c.fillStyle=color;c.lineWidth=lwPx*100/box;c.lineJoin=c.lineCap="round";ICON[key](c);c.restore()}
+
+/* ============ 柄 ============ */
+function paw(c,x,y,s,rot){c.save();c.translate(x,y);c.rotate(rot);c.beginPath();c.ellipse(0,s*.18,s*.34,s*.28,0,0,Math.PI*2);c.fill();for(const[a,b]of [[-.4,-.16],[-.15,-.42],[.15,-.42],[.4,-.16]]){c.beginPath();c.ellipse(a*s,b*s,s*.13,s*.16,a*.6,0,Math.PI*2);c.fill()}c.restore()}
+function pattern(c,w,h,step,col,y0=0){if(st.pattern==="none")return;c.save();c.globalAlpha=st.patternAlpha/100;c.fillStyle=col;
+  if(st.pattern==="stripe"){for(let x=0;x<w;x+=step)c.fillRect(x,y0,step*.32,h-y0)}
+  else if(st.pattern==="check"){c.globalAlpha*=.6;for(let x=0;x<w;x+=step)c.fillRect(x,y0,step/2,h-y0);for(let y=y0;y<h;y+=step)c.fillRect(0,y,w,step/2)}
+  else{let row=0;for(let y=y0+step/2;y<h+step;y+=step,row++)for(let x=(row%2?step/2:0);x<w+step;x+=step){
+    if(st.pattern==="dots")circle(c,x,y,step*.07,col);else paw(c,x,y,step*.22,(row%2?.35:-.35))}}
+  c.restore()}
+
+/* ============ 1枚ずつの描画 ============ */
+function charImg(){return S.char||(S.char=sampleDog())}
+function charGray(){if(!S.charGray)S.charGray=grayOf(charImg(),.5);return S.charGray}
+function sheetIcon(menuKey,on){const i=MENU.findIndex(m=>m.key===menuKey);if(!S.sheet.on)return null;if(on)return S.sheet.on[i];
+  if(S.sheet.off&&S.sheet.off[i])return S.sheet.off[i];const src=S.sheet.on[i];if(!src)return null;const mode=$("#offMode").value;
+  if(mode==="same")return src;src._off=src._off||{};return src._off[mode+st.line]||(src._off[mode+st.line]=mode==="tint"?grayOf(src,1,st.line):grayOf(src,.55))}
+
+function paintMenu(c,s){const w=s.w,h=s.h,cx=w/2,cy=h/2,k=st.iconSize/78,box=s.g?44*k:84*k,lw=st.lineW*box/84*(s.on?1.12:1);
+  const showBlob=s.on&&(st.marker==="blob"||st.marker==="both"),showDot=s.on&&(st.marker==="dot"||st.marker==="both");
+  const dy=showDot?-box*.07:0;
+  if(showBlob)circle(c,cx,cy+dy,s.g?Math.min(box*.6,h/2-1):box*.62,st.accent);
+  const sheet=sheetIcon(s.menu,s.on),color=s.on?st.main:st.line;
+  if(sheet){drawContain(c,sheet,cx,cy+dy,box*1.02,box*1.02)}
+  else if(st.iconStyle==="charOn"&&s.on){drawContain(c,charImg(),cx,cy+dy,box*1.25,box*1.25)}
+  else{if(s.g&&st.gOutline){const halo=lum(color)<.4?"#ffffff":"#1b1d22";drawIcon(c,s.menu,cx,cy+dy,box,halo,lw+(s.g?3.2:4))}
+    drawIcon(c,s.menu,cx,cy+dy,box,color,lw)}
+  if(showDot)circle(c,cx,cy+dy+box*.62,Math.max(2,box*.045),st.main)}
+function paintThumb(c,s){const w=s.w,h=s.h;c.fillStyle=st.bg;c.fillRect(0,0,w,h);pattern(c,w,h,w*.3,st.sub);
+  circle(c,w/2,h*.44,w*.42,st.accent);drawContain(c,charImg(),w/2,h*.45,w*.86*st.charScale/100,h*.6*st.charScale/100);
+  if(st.thumbText.trim()){c.fillStyle=st.main;c.textAlign="center";c.textBaseline="middle";c.font=`700 ${Math.round(w*.085)}px ${getComputedStyle(document.documentElement).getPropertyValue("--f-display")}`;c.fillText(st.thumbText.trim(),w/2,h*.89,w*.9)}}
+const FOUR=()=>[st.accent,st.sub,mix(st.accent,st.sub,.5),mix(st.sub,st.bg,.35)];
+function paintPass(c,s){const w=s.w,cx=w/2,col=st.passFour?FOUR()[s.digit-1]:st.accent;
+  if(st.passMode==="paw"){circle(c,cx,cx,w*.43,s.on?col:mix(st.bg,st.sub,.5));c.fillStyle=s.on?st.main:st.line;
+    if(s.on)paw(c,cx,cx+w*.03,w*.62,0);else{c.save();c.globalAlpha=.55;paw(c,cx,cx+w*.03,w*.62,0);c.restore()}}
+  else{circle(c,cx,cx,w*.43,s.on?col:mix(st.bg,st.sub,.45));drawContain(c,s.on?charImg():charGray(),cx,cx*1.02,w*.78*st.charScale/100,w*.78*st.charScale/100)}
+  if(st.passDigits){circle(c,w*.8,w*.8,w*.13,st.main);c.fillStyle=st.bg;c.font=`700 ${Math.round(w*.15)}px sans-serif`;c.textAlign="center";c.textBaseline="middle";c.fillText(String(s.digit),w*.8,w*.81)}}
+function paintProfile(c,s){const w=s.w;c.fillStyle=st.bg;c.fillRect(0,0,w,w);pattern(c,w,w,w*.28,st.sub);circle(c,w/2,w/2,w*.42,s.grp?st.sub:st.accent);
+  const f=st.charScale/100;if(s.grp&&st.groupPair){drawContain(c,charGray(),w*.64,w*.5,w*.5*f,w*.5*f,.9);drawContain(c,charImg(),w*.4,w*.56,w*.58*f,w*.58*f)}
+  else drawContain(c,charImg(),w/2,w*.5,w*.8*f,w*.8*f)}
+function paintMenuBg(c,s){const w=s.w,h=s.h,top=st.menuBgTop;c.fillStyle=st.bg;c.fillRect(0,top,w,h-top);
+  c.save();c.beginPath();c.rect(0,top,w,h-top);c.clip();pattern(c,w,h,184,st.sub,top);c.restore();c.fillStyle=mix(st.bg,st.line,.35);c.fillRect(0,top,w,2)}
+function paintTalk(c,s,scale=1){const w=s.w*scale,h=s.h*scale;if(!st.talkClear){c.fillStyle=st.bg;c.fillRect(0,0,w,h)}
+  pattern(c,w,h,(s.os==="i"?160:150)*scale,st.sub);const f=st.charScale/100;
+  if(s.os==="i"){const mw=640*scale*.6*f,mh=h*.3*f;drawContain(c,charImg(),w/2,h-mh/2-h*.05,mw,mh)}
+  else{const mw=w*.36*f,mh=h*.3*f;drawContain(c,charImg(),w/2,h-mh/2-h*.2,mw,mh)}}
+function paintOverride(c,s,ov,w,h){if(s.opaque||ov.fill){c.fillStyle=st.bg;c.fillRect(0,0,w,h)}const im=ov.img,base=ov.fit==="cover"?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height),k=base*ov.zoom/100,dw=im.width*k,dh=im.height*k;
+  c.drawImage(im,(w-dw)/2+ov.dx/100*w/2,(h-dh)/2+ov.dy/100*h/2,dw,dh)}
+function render(s){const shrink=S.shrink.get(s.name)||1,ov=S.over.get(s.name);
+  const w=s.flexible&&ov&&ov.raw?ov.img.width:Math.round(s.w*shrink),h=s.flexible&&ov&&ov.raw?ov.img.height:Math.round(s.h*shrink);
+  const cv=mk(w,h),c=cv.getContext("2d");c.imageSmoothingQuality="high";
+  if(ov){paintOverride(c,s,ov,w,h)}
+  else if(s.kind==="menu")paintMenu(c,s);else if(s.kind==="thumb")paintThumb(c,s);else if(s.kind==="pass")paintPass(c,s);
+  else if(s.kind==="profile")paintProfile(c,s);else if(s.kind==="menubg")paintMenuBg(c,s);else if(s.kind==="talk")paintTalk(c,s,shrink);
+  return cv}
+function active(s){return!s.optional||st[s.optional]||S.over.has(s.name)}
+function activeSpecs(){return SPEC.filter(active)}
+async function getBlob(name){const hit=S.blob.get(name);if(hit&&hit.ver===S.ver)return hit.b;const ov=S.over.get(name);
+  const b=(ov&&ov.raw&&ov.untouched)?ov.raw:await canvasBlob(S.cv.get(name));S.blob.set(name,{ver:S.ver,b});return b}
+
+/* ============ 全体の再描画 ============ */
+function renderAll(only){S.ver++;for(const s of SPEC)if(!only||only.includes(s.name))S.cv.set(s.name,render(s));
+  updateTiles();drawMocks();scheduleCheck();$("#topCount").textContent=activeSpecs().length+" 枚";$("#tabAllN").textContent=activeSpecs().length}
+const renderSoon=debounce(()=>renderAll(),90);
+
+/* ============ プレビュー（スマホ画面） ============ */
+const mockState={mode:"classic",set:"b",sel:1};
+function phoneBase(cv){const c=cv.getContext("2d"),W=375,H=750;c.setTransform(cv.width/W,0,0,cv.height/H,0,0);c.clearRect(0,0,W,H);
+  c.save();c.beginPath();c.roundRect(0,0,W,H,40);c.clip();return{c,W,H}}
+function statusBar(c,W,col){c.fillStyle=col;c.font="600 13px sans-serif";c.textBaseline="middle";c.textAlign="left";c.fillText("9:41",26,22);c.textAlign="right";c.fillText("100%",W-24,22)}
+function drawMocks(){drawList();drawTalk();drawPass();drawProf();drawStore()}
+let listHit=[];
+function drawList(){const cv=$("#mockList"),{c,W,H}=phoneBase(cv),ink=lum(st.bg)<.3?"#f1f1f1":"#20232a",sub=lum(st.bg)<.3?"#9aa0aa":"#8a8f99";
+  c.fillStyle=st.bg;c.fillRect(0,0,W,H);statusBar(c,W,ink);
+  c.fillStyle=ink;c.font="700 22px sans-serif";c.textAlign="left";c.fillText("トーク",20,72);
+  const prof=[S.cv.get("i_20.png"),S.cv.get("i_21.png")];
+  for(let i=0;i<7;i++){const y=104+i*66;c.save();c.beginPath();c.arc(44,y+24,24,0,Math.PI*2);c.clip();c.drawImage(prof[i%3===1?1:0],20,y,48,48);c.restore();
+    c.fillStyle=ink;c.font="700 14px sans-serif";c.fillText(["ももちゃん","わんこ部","Mon Chein","ここあ","おさんぽ会","ママ","ゆき"][i],80,y+15);
+    c.fillStyle=sub;c.font="12px sans-serif";c.fillText(["またね〜","明日の集合は10時","ご注文ありがとうございます","写真送るね","雨なら中止です","了解！","🐶"][i],80,y+36)}
+  const tabs=TABSETS[mockState.set];listHit=[];
+  if(mockState.mode==="classic"){const s=(W/5)/128,bh=150*s,y=H-bh-16;c.fillStyle=st.bg;c.fillRect(0,y,W,bh+16);
+    const mb=active(BYNAME.get("i_11.png"))?S.cv.get("i_11.png"):null;if(mb){for(let x=0;x<W;x+=1472*s)c.drawImage(mb,x,y,1472*s,bh)}else{c.fillStyle=mix(st.bg,st.line,.25);c.fillRect(0,y,W,1)}
+    tabs.forEach((k,i)=>{const m=MENU.find(m=>m.key===k),on=i===mockState.sel,img=S.cv.get(`i_${on?m.on:m.off}.png`),x=i*W/5;c.drawImage(img,x,y,128*s,bh);listHit.push([x,y,W/5,bh,i]);
+      if($("#mockBadge").checked&&i===1){const bx=x+(128-21-33)*s,by=y+49*s;circle(c,bx+33*s/2,by+33*s/2,33*s/2,"#e8473f");c.fillStyle="#fff";c.font=`700 ${Math.round(12)}px sans-serif`;c.textAlign="center";c.fillText("3",bx+33*s/2,by+33*s/2+1);c.textAlign="left"}})}
+  else{const ph=60,py=H-ph-26,px=14,pw=W-28;c.save();c.shadowColor="#0003";c.shadowBlur=18;c.fillStyle=lum(st.bg)<.3?"rgba(40,44,52,.82)":"rgba(255,255,255,.78)";c.beginPath();c.roundRect(px,py,pw,ph,ph/2);c.fill();c.restore();
+    const cw=pw/5,s=.95;tabs.forEach((k,i)=>{const m=MENU.find(m=>m.key===k),on=i===mockState.sel,img=S.cv.get(`i_${on?m.on:m.off}_g.png`),x=px+i*cw+(cw-80*s)/2,y=py+(ph-56*s)/2;
+      if(on){c.fillStyle=lum(st.bg)<.3?"rgba(255,255,255,.12)":"rgba(0,0,0,.06)";c.beginPath();c.roundRect(px+i*cw+3,py+4,cw-6,ph-8,(ph-8)/2);c.fill()}
+      c.drawImage(img,x,y,80*s,56*s);listHit.push([px+i*cw,py,cw,ph,i]);
+      if($("#mockBadge").checked&&i===1){circle(c,x+80*s-6,y+6,9,"#e8473f");c.fillStyle="#fff";c.font="700 11px sans-serif";c.textAlign="center";c.fillText("3",x+80*s-6,y+7);c.textAlign="left"}})}
+  c.restore()}
+function drawTalk(){const cv=$("#mockTalk"),{c,W,H}=phoneBase(cv),dark=lum(st.bg)<.3,ink=dark?"#f1f1f1":"#20232a";
+  c.fillStyle=st.bg;c.fillRect(0,0,W,H);const inputH=64,top=88,talkB=H-inputH;
+  if(active(BYNAME.get("i_22.png"))){const img=S.cv.get("i_22.png"),s=W/(img.width*640/1482);c.drawImage(img,(W-img.width*s)/2,talkB-img.height*s,img.width*s,img.height*s)}
+  c.fillStyle=dark?"rgba(30,33,40,.9)":"rgba(255,255,255,.9)";c.fillRect(0,0,W,top);statusBar(c,W,ink);c.fillStyle=ink;c.font="700 16px sans-serif";c.textAlign="center";c.fillText("ももちゃん",W/2,64);c.textAlign="left";c.font="22px sans-serif";c.fillText("‹",14,64);
+  const bub=(x,y,w,txt,me)=>{c.fillStyle=me?st.accent:(dark?"#3a3f4a":"#ffffff");c.beginPath();c.roundRect(x,y,w,38,19);c.fill();c.fillStyle=me?st.main:ink;c.font="14px sans-serif";c.textBaseline="middle";c.fillText(txt,x+14,y+19)};
+  c.save();c.beginPath();c.arc(30,130,16,0,Math.PI*2);c.clip();c.drawImage(S.cv.get("i_20.png"),14,114,32,32);c.restore();
+  bub(54,116,170,"今日のおさんぽ行く？",false);bub(W-190,170,176,"行く！10時にね",true);bub(54,224,128,"りょうかい",false);
+  c.fillStyle=dark?"#1e2128":"#ffffff";c.fillRect(0,talkB,W,inputH);c.fillStyle=dark?"#30343d":"#eff1f4";c.beginPath();c.roundRect(52,talkB+12,W-104,36,18);c.fill();
+  c.fillStyle=dark?"#9aa0aa":"#8a8f99";c.font="13px sans-serif";c.fillText("Aa",66,talkB+30);c.font="22px sans-serif";c.fillText("+",20,talkB+31);
+  c.restore()}
+function drawPass(){const cv=$("#mockPass"),c=cv.getContext("2d");c.clearRect(0,0,cv.width,cv.height);for(let d=1;d<=4;d++){const on=d<=2,img=S.cv.get(`i_${10+d*2+(on?1:0)}.png`);c.drawImage(img,20+(d-1)*135,20,120,120)}}
+function drawProf(){const cv=$("#mockProf"),c=cv.getContext("2d");c.clearRect(0,0,cv.width,cv.height);["i_20.png","i_21.png"].forEach((n,i)=>{c.save();c.beginPath();c.arc(65+i*130,65,55,0,Math.PI*2);c.clip();c.drawImage(S.cv.get(n),10+i*130,10,110,110);c.restore()})}
+function drawStore(){const cv=$("#mockStore"),c=cv.getContext("2d");c.clearRect(0,0,198,278);c.drawImage(S.cv.get("store_thumbnail.png"),0,0);$("#storeTitle").textContent=st.tTitle;$("#storeCreator").textContent=st.tCreator;$("#storeDesc").textContent=st.tDesc}
+$("#mockList").addEventListener("click",e=>{const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*375,y=(e.clientY-r.top)/r.height*750;for(const[hx,hy,hw,hh,i]of listHit)if(x>=hx&&x<hx+hw&&y>=hy&&y<hy+hh){mockState.sel=i;drawList()}});
+function seg(id,key){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;mockState[key]=b.dataset.v;$$(id+" button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawList()})}
+seg("#segMode","mode");seg("#segTabs","set");$("#mockBadge").addEventListener("change",drawList);
+
+/* ============ 全画像タイル ============ */
+function buildGroups(){const root=$("#groups");root.replaceChildren();for(const g of GROUPS){const items=SPEC.filter(s=>s.group===g.id);
+  const tiles=el("div",{class:"tiles"+(g.id==="C"||g.id==="F"?" wide":"")});
+  for(const s of items){const pv=el("div",{class:"pv"}),cv=mk(10,10);pv.append(cv);
+    const t=el("button",{class:"tile",type:"button","data-name":s.name,"aria-label":s.label+" "+s.name+" を編集"},pv,el("div",{class:"nm",text:s.name}),el("div",{class:"mt"},el("span",{class:"sz mono",text:`${s.w}×${s.h}`}),el("span",{class:"dot"})));
+    t.addEventListener("click",()=>openEditor(s.name));tiles.append(t)}
+  root.append(el("section",{class:"group"},el("header",{},el("h3",{},el("span",{class:"gk",text:g.id==="G"?"B′":g.id}),g.title),el("span",{class:"pill mono",text:items.length+"枚"}),el("p",{text:g.note})),tiles))}}
+function updateTiles(){for(const t of $$(".tile")){const s=BYNAME.get(t.dataset.name),src=S.cv.get(s.name),cv=t.querySelector("canvas"),max=s.w>400?520:112,k=Math.min(1,max/Math.max(src.width,src.height));
+  cv.width=Math.round(src.width*k);cv.height=Math.round(src.height*k);const c=cv.getContext("2d");c.imageSmoothingQuality="high";c.drawImage(src,0,0,cv.width,cv.height);
+  t.querySelector(".sz").textContent=`${src.width}×${src.height}`;const lv=worst(s.name),dot=t.querySelector(".dot");dot.className="dot"+(lv==="err"?" err":lv==="warn"?" warn":S.over.has(s.name)?" src":"");
+  t.style.opacity=active(s)?1:.4;t.title=active(s)?"":"書き出しに含めない設定です"}}
+function worst(name){let r="ok";for(const i of S.issues)if(i.file===name){if(i.level==="err")return"err";if(i.level==="warn")r="warn"}return r}
+
+/* ============ チェック ============ */
+const scheduleCheck=debounce(()=>runChecks(),350);
+function zen(s){let n=0;for(const ch of s)n+=ch.codePointAt(0)>0xff?2:1;return n}
+async function runChecks(){const ver=S.ver,out=[],add=(level,file,msg,how,fix)=>out.push({level,file,msg,how,fix});
+  const act=activeSpecs();
+  // 枚数と名前
+  const opt=SPEC.filter(s=>!active(s)).map(s=>s.name);
+  add("ok",null,`書き出すファイル：${act.length}枚（必須59枚${opt.length?"＋任意 "+(3-opt.length)+"枚":"＋任意3枚"}）`,opt.length?"含めない任意画像："+opt.join("、"):"任意のメニュー背景・トーク背景も含めています。");
+  for(const s of act){const cv=S.cv.get(s.name),w=cv.width,h=cv.height;
+    if(!s.flexible&&(w!==s.w||h!==s.h))add("err",s.name,`サイズが ${w}×${h} です（${s.w}×${s.h} が必要）`,"このツールで描き直すと規定サイズになります。",()=>{S.over.delete(s.name);renderAll()});
+    if(s.flexible&&(w<60||h<60||w>s.w||h>s.h))add("err",s.name,`サイズ ${w}×${h} が範囲外です（60×60〜${s.w}×${s.h}）`,"差し替え画像の大きさを確認してください。");
+    const d=cv.getContext("2d").getImageData(0,0,w,h).data;
+    if(s.opaque){let t=0;for(let i=3;i<d.length;i+=4)if(d[i]<255){t++;if(t>0)break}
+      if(t)add("err",s.name,"透過している部分があります（メイン画像は透過不可）","背景色で塗りつぶして直せます。",()=>{const ov=S.over.get(s.name);if(ov){ov.fill=true;ov.untouched=false}renderAll()})}
+    if(s.kind==="menubg"){let t=false;for(let i=3;i<d.length;i+=4)if(d[i]<255){t=true;break}
+      if(t&&h<=100)add("err",s.name,"高さ100px以下なのに透過があります","高さ101〜150pxなら透過できます。");
+      else if(t)add("warn",s.name,"透過部分があります。端末によって黒く表示されることがあります","申請前にマイページのプレビューで確認してください。上の透過を0にすると完全に塗れます。",()=>{st.menuBgTop=0;syncInputs();save();renderAll()})}
+    if(s.kind==="menu"){const b=bbox(cv,24);
+      if(!b)add("err",s.name,"絵が入っていません（全部透明）","アイコンを入れ直してください。");
+      else if(!s.g){const m=Math.min(b.x,b.y,w-b.x-b.w,h-b.y-b.h);if(m<8)add("warn",s.name,`外枠までの余白が ${m}px です（目安10px）`,"アイコンを少し小さくすると余白が取れます。",()=>{st.iconSize=Math.max(50,st.iconSize-6);syncInputs();save();renderAll()})}
+      if(s.g&&b){let lowW=0,lowB=0,n=0;for(let i=0;i<d.length;i+=4){if(d[i+3]<160)continue;n++;const L=(.2126*d[i]+.7152*d[i+1]+.0722*d[i+2])/255;if((1.05)/(L+.05)<1.7)lowW++;if((L+.05)/.05<1.7)lowB++}
+        if(n){const fw=lowW/n,fb=lowB/n;if(fw>.85||fb>.85)add("warn",s.name,`${fw>.85?"白":"黒"}背景の上で見えにくい可能性があります`,"iOS 26はメニューの下が透けます。フチを付けると見やすくなります。",st.gOutline?null:()=>{st.gOutline=true;syncInputs();save();renderAll()})}}}
+    if(s.kind==="talk"){const b=await getBlob(s.name);if(ver!==S.ver)return;const kb=(b.size/1024).toFixed(0);
+      if(b.size>s.maxBytes)add("err",s.name,`容量が ${kb}KB あります（1MB以下）`,"自動で少しずつ縮小して1MB以下にできます。",()=>shrinkTalk(s.name));
+      else add("ok",s.name,`容量 ${kb}KB（1MB以下）`)}}
+  // ON/OFFが同じ絵になっていないか
+  for(const g of [false,true])for(const m of MENU){const a=S.cv.get(`i_${m.off}${g?"_g":""}.png`),b=S.cv.get(`i_${m.on}${g?"_g":""}.png`);
+    if(a.toDataURL()===b.toDataURL())add("warn",`i_${m.on}${g?"_g":""}.png`,`${m.label}のOFFとONが同じ画像です`,"選択中が分かるよう、ONの目印や色を変えてください。")}
+  // テキスト
+  const T=[["tTitle","着せかえタイトル",40],["tDesc","着せかえ説明文",160],["tCreator","クリエイター名",50],["tCopy","コピーライト",50]];
+  for(const[k,lab,max]of T){const v=st[k]||"",n=zen(v);if(!v.trim())add("warn",null,`${lab}が空です`,"「申請テキスト」タブで入力できます。");
+    else if(n>max)add("err",null,`${lab}が ${n}文字 です（${max}文字以内）`,"全角は2文字として数えます。");
+    if(/\p{Extended_Pictographic}/u.test(v))add("err",null,`${lab}に絵文字が入っています`,"絵文字は使えません。")}
+  if(st.tCopy&&!/^[\x20-\x7E]*$/.test(st.tCopy))add("err",null,"コピーライトに英数字以外が入っています","英数字と記号のみで入力してください。");
+  if(ver!==S.ver)return;S.issues=out;showChecks()}
+async function shrinkTalk(name){const s=BYNAME.get(name);if(S.over.get(name)?.raw){const ov=S.over.get(name);ov.raw=null;ov.untouched=false}
+  for(let k=0;k<12;k++){const cur=S.shrink.get(name)||1;S.shrink.set(name,cur*.88);S.ver++;S.cv.set(name,render(s));const b=await getBlob(name);if(b.size<=s.maxBytes){setStatus(`${name} を ${S.cv.get(name).width}×${S.cv.get(name).height} に縮小し、${(b.size/1024).toFixed(0)}KB になりました`);break}}
+  renderAll()}
+function showChecks(){const errs=S.issues.filter(i=>i.level==="err").length,warns=S.issues.filter(i=>i.level==="warn").length;
+  const top=$("#topCheck");top.className="pill "+(errs?"err":warns?"warn":"ok");top.textContent=errs?`エラー ${errs}`:warns?`注意 ${warns}`:"規定OK";
+  $("#tabCheckN").textContent=errs+warns?String(errs+warns):"";
+  $("#checkSummary").replaceChildren(el("span",{class:"pill err",text:`エラー ${errs}`}),el("span",{class:"pill warn",text:`注意 ${warns}`}),el("span",{class:"pill ok",text:`確認済み ${activeSpecs().length}枚`}));
+  const list=$("#issues");list.replaceChildren();const order={err:0,warn:1,ok:2};
+  for(const i of [...S.issues].sort((a,b)=>order[a.level]-order[b.level])){const btns=el("div",{class:"row"});
+    if(i.fix)btns.append(el("button",{class:"btn small primary",type:"button",text:"直す",onclick:async()=>{setStatus("修正しています…");await i.fix();if($("#status").textContent==="修正しています…")setStatus("修正しました。もう一度チェックしています。")}}));
+    if(i.file)btns.append(el("button",{class:"btn small",type:"button",text:"開く",onclick:()=>openEditor(i.file)}));
+    list.append(el("li",{class:"issue "+i.level},el("span",{class:"lv",text:i.level==="err"?"エラー":i.level==="warn"?"注意":"OK"}),
+      el("div",{class:"msg"},i.file?el("b",{text:i.file+"　"}):null,i.msg,i.how?el("span",{class:"how",text:i.how}):null),btns))}
+  for(const t of $$(".tile")){const lv=worst(t.dataset.name),dot=t.querySelector(".dot");dot.className="dot"+(lv==="err"?" err":lv==="warn"?" warn":S.over.has(t.dataset.name)?" src":"")}}
+function specTable(){const t=$("#specTable");t.append(el("tr",{},...["区分","ファイル名","サイズ","備考"].map(x=>el("th",{text:x}))));
+  for(const g of GROUPS){const items=SPEC.filter(s=>s.group===g.id);t.append(el("tr",{},el("td",{text:g.title}),el("td",{class:"mono",text:items.length>2?`${items[0].name} ほか${items.length}枚`:items.map(s=>s.name).join(" / ")}),el("td",{class:"mono",text:[...new Set(items.map(s=>s.w+"×"+s.h))].join(" / ")}),el("td",{text:g.note})))}}
+
+/* ============ ZIP（無圧縮で書き出し・読み込みは deflate も対応） ============ */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function makeZip(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;const d=new Date(),dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+  for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,tm,true);h.setUint16(12,dt,true);h.setUint32(14,crc,true);h.setUint32(18,f.data.length,true);h.setUint32(22,f.data.length,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),nm,f.data);const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,tm,true);c.setUint16(14,dt,true);c.setUint32(16,crc,true);c.setUint32(20,f.data.length,true);c.setUint32(24,f.data.length,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    cen.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+f.data.length}
+  const cs=cen.reduce((a,b)=>a+b.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:"application/zip"})}
+async function readZip(blob){const u=new Uint8Array(await blob.arrayBuffer()),v=new DataView(u.buffer);let e=-1;for(let i=u.length-22;i>=Math.max(0,u.length-65558);i--)if(v.getUint32(i,true)===0x06054b50){e=i;break}
+  if(e<0)throw Error("ZIPとして読めませんでした");const n=v.getUint16(e+10,true);let p=v.getUint32(e+16,true);const out=[],utf=new TextDecoder("utf-8",{fatal:true});let sj;try{sj=new TextDecoder("shift_jis")}catch(x){sj=new TextDecoder()}
+  for(let k=0;k<n;k++){if(v.getUint32(p,true)!==0x02014b50)throw Error("ZIPの目次が壊れています");const flag=v.getUint16(p+8,true),method=v.getUint16(p+10,true),crc=v.getUint32(p+16,true),cs=v.getUint32(p+20,true),us=v.getUint32(p+24,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),cl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true);
+    const raw=u.subarray(p+46,p+46+nl);let name;try{name=flag&0x800?utf.decode(raw):utf.decode(raw)}catch(x){name=sj.decode(raw)}
+    const ds=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true);out.push({name,method,crc,cs,us,dir:name.endsWith("/"),data:u.subarray(ds,ds+cs)});p+=46+nl+xl+cl}
+  return out}
+async function unzipEntry(en){if(en.method===0)return new Blob([en.data]);if(en.method===8){if(typeof DecompressionStream==="undefined")throw Error("このブラウザは圧縮ZIPの展開に対応していません");return await new Response(new Blob([en.data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob()}throw Error(en.name+" の圧縮方式("+en.method+")には対応していません")}
+
+async function exportZip(){const btn=$("#exportBtn");btn.disabled=true;setStatus("PNGを作成しています…");
+  try{await runChecks();const errs=S.issues.filter(i=>i.level==="err");const files=[];
+    for(const s of activeSpecs()){const b=await getBlob(s.name);files.push({name:s.name,data:new Uint8Array(await b.arrayBuffer())})}
+    const zip=makeZip(files),back=await readZip(zip),names=new Set(back.map(x=>x.name));
+    if(back.length!==files.length||files.some(f=>!names.has(f.name)))throw Error("書き出したZIPの中身が一致しませんでした");
+    for(const en of back){const f=files.find(f=>f.name===en.name);if(crc32(en.data)!==en.crc||en.data.length!==f.data.length)throw Error(en.name+" の検証に失敗しました")}
+    const nm=(st.zipName||"theme").replace(/[\\/:*?"<>|]/g,"_")+".zip";download(zip,nm);
+    setStatus(`${nm}（${files.length}枚・${(zip.size/1024/1024).toFixed(2)}MB）を書き出し、中身を検証しました。`+(errs.length?`ただしエラーが${errs.length}件あります。チェックタブを確認してください。`:""))}
+  catch(e){setStatus("書き出しできませんでした："+e.message)}finally{btn.disabled=false}}
+$("#exportBtn").addEventListener("click",exportZip);
+
+/* ============ 取り込み ============ */
+function setOverride(name,img,opts={}){const s=BYNAME.get(name),exact=img.width===s.w&&img.height===s.h,ok=s.flexible&&img.width>=60&&img.height>=60&&img.width<=s.w&&img.height<=s.h;
+  S.over.set(name,{img,raw:(exact||ok)&&opts.raw?opts.raw:null,untouched:!!((exact||ok)&&opts.raw),fit:"contain",zoom:100,dx:0,dy:0,fill:!!s.opaque,knock:false,orig:img,...opts.extra})}
+async function importFiles(list){const rep=[],cand=[];
+  for(const f of list){const head=new Uint8Array(await f.slice(0,4).arrayBuffer()),isZip=head[0]===0x50&&head[1]===0x4b&&head[2]===3&&head[3]===4;
+    if(isZip||/\.zip$/i.test(f.name)){try{const ents=await readZip(f);for(const en of ents){if(en.dir||/(^|\/)(__MACOSX|\._)/.test(en.name))continue;cand.push({name:en.name,get:()=>unzipEntry(en),from:f.name})}}catch(e){rep.push("✕ "+f.name+"："+e.message)}}
+    else cand.push({name:f.name,get:async()=>f,from:null})}
+  let ok=0;const unknown=[],resized=[];
+  for(const c of cand){const base=c.name.split("/").pop(),png=base.toLowerCase().replace(/\.(gif|jpe?g|webp)$/,".png");if(!/\.(png|gif|jpe?g|webp)$/i.test(base))continue;
+    if(!BYNAME.has(png)){unknown.push(base);continue}
+    try{let b=await c.get();const isPng=/\.png$/i.test(base);if(!isPng)b=new Blob([b],{type:/\.gif$/i.test(base)?"image/gif":/\.jpe?g$/i.test(base)?"image/jpeg":"image/webp"});else b=new Blob([b],{type:"image/png"});
+      const bmp=await blobToImg(b),cv=toCanvas(bmp);bmp.close&&bmp.close();const s=BYNAME.get(png);
+      if(!s.flexible&&(cv.width!==s.w||cv.height!==s.h))resized.push(`${png}（${cv.width}×${cv.height} → ${s.w}×${s.h}）`);
+      setOverride(png,cv,{raw:isPng?b:null});ok++}catch(e){rep.push("✕ "+base+"：読み込めませんでした")}}
+  rep.unshift(`${ok}枚を取り込みました（規定のファイル名 ${SPEC.length}枚中）。`);
+  if(resized.length)rep.push("サイズが違ったので枠に合わせました：\n  "+resized.join("\n  "));
+  if(unknown.length)rep.push("ファイル名が規定と一致しないため使っていません：\n  "+unknown.slice(0,30).join("、")+(unknown.length>30?` ほか${unknown.length-30}件`:""));
+  const missing=activeSpecs().filter(s=>!S.over.has(s.name)).length;if(missing)rep.push(`残りの ${missing} 枚は自動生成の画像を使います。`);
+  const r=$("#importReport");r.hidden=false;r.textContent=rep.join("\n");renderAll()}
+const drop=$("#drop");
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{if(e.dataTransfer.files.length)importFiles([...e.dataTransfer.files])});
+$("#bulkFile").addEventListener("change",e=>{if(e.target.files.length)importFiles([...e.target.files]);e.target.value=""});
+$("#clearOverrides").addEventListener("click",()=>{S.over.clear();S.shrink.clear();$("#importReport").hidden=true;renderAll();setStatus("差し替えをすべて外しました")});
+
+async function loadImage(file){const bmp=await blobToImg(file);const cv=toCanvas(bmp);bmp.close&&bmp.close();return cv}
+async function sliceSheet(file){const src=await loadImage(file),cw=src.width/3,ch=src.height/3,tol=Number($("#sheetTol").value),out=[];
+  for(let r=0;r<3;r++)for(let q=0;q<3;q++){const ix=cw*.03,iy=ch*.03,cell=mk(cw-ix*2,ch-iy*2);cell.getContext("2d").drawImage(src,q*cw+ix,r*ch+iy,cw-ix*2,ch-iy*2,0,0,cell.width,cell.height);
+    if($("#sheetKnock").checked)knockout(cell,tol);out.push(trim(cell))}
+  return out}
+let sheetFiles={on:null,off:null};
+async function rebuildSheet(){try{S.sheet.on=sheetFiles.on?await sliceSheet(sheetFiles.on):null;S.sheet.off=sheetFiles.off?await sliceSheet(sheetFiles.off):null}catch(e){setStatus("シートを読み込めませんでした："+e.message)}
+  const box=$("#sheetPreview");box.replaceChildren();
+  if(S.sheet.on)MENU.forEach((m,i)=>{const fig=el("figure"),cv=mk(120,120),c=cv.getContext("2d"),ic=S.sheet.on[i];if(ic)drawContain(c,ic,60,60,112,112);fig.append(cv,el("span",{text:(i+1)+" "+m.label+(ic?"":"（空）")}));box.append(fig)});
+  renderAll()}
+$("#sheetOn").addEventListener("change",e=>{sheetFiles.on=e.target.files[0]||null;rebuildSheet()});
+$("#sheetOff").addEventListener("change",e=>{sheetFiles.off=e.target.files[0]||null;rebuildSheet()});
+$("#sheetKnock").addEventListener("change",()=>sheetFiles.on&&rebuildSheet());
+$("#sheetTol").addEventListener("input",()=>{$("#sheetTolOut").textContent=$("#sheetTol").value});
+$("#sheetTol").addEventListener("change",()=>sheetFiles.on&&rebuildSheet());
+$("#offMode").addEventListener("change",()=>renderAll());
+$("#sheetClear").addEventListener("click",()=>{sheetFiles={on:null,off:null};$("#sheetOn").value="";$("#sheetOff").value="";S.sheet={on:null,off:null};$("#sheetPreview").replaceChildren();renderAll()});
+
+/* キャラクター */
+function drawCharThumb(){const c=$("#charThumb").getContext("2d");c.clearRect(0,0,144,144);c.fillStyle=st.accent;c.fillRect(0,0,144,144);drawContain(c,charImg(),72,72,128,128);$("#charName").textContent=S.charLabel}
+let charFile=null;
+async function setChar(){if(!charFile)return;try{let cv=await loadImage(charFile);if($("#charKnock").checked)cv=knockout(cv,40);cv=trim(cv)||cv;
+  const max=1400,k=Math.min(1,max/Math.max(cv.width,cv.height));if(k<1){const o=mk(cv.width*k,cv.height*k);o.getContext("2d").drawImage(cv,0,0,o.width,o.height);cv=o}
+  S.char=cv;S.charGray=null;S.charLabel=charFile.name;drawCharThumb();renderAll();setStatus(charFile.name+" をキャラクターにしました")}catch(e){setStatus("画像を読み込めませんでした："+e.message)}}
+$("#charFile").addEventListener("change",e=>{charFile=e.target.files[0]||null;setChar()});
+$("#charKnock").addEventListener("change",()=>setChar());
+
+/* ============ 1枚エディタ ============ */
+let edName=null;
+function openEditor(name){edName=name;const s=BYNAME.get(name);$("#edTitle").textContent=s.label;$("#edMeta").textContent=`${s.name}　${s.flexible?`最大 ${s.w}×${s.h}`:`${s.w}×${s.h}`}${s.opaque?"　透過不可":""}`;
+  $("#edFile").value="";$("#edBgs").hidden=!s.g;$("#modal").hidden=false;syncEditor();$("#edClose").focus()}
+function syncEditor(){const s=BYNAME.get(edName),ov=S.over.get(edName);$("#edCtrls").hidden=!ov;
+  if(ov){$("#edFit").value=ov.fit;$("#edZoom").value=ov.zoom;$("#edX").value=ov.dx;$("#edY").value=ov.dy;$("#edFill").checked=ov.fill;$("#edKnock").checked=ov.knock;$("#edZoomOut").textContent=ov.zoom+"%";$("#edXOut").textContent=ov.dx;$("#edYOut").textContent=ov.dy}
+  $("#edNote").textContent=ov?(ov.untouched?"取り込んだPNGをそのまま使います（調整すると描き直します）。":"差し替え画像を枠に合わせて描いています。"):"いまは左の設定から自動生成しています。画像を選ぶとこの枠だけ差し替わります。";
+  const src=S.cv.get(edName),cv=$("#edCanvas"),k=Math.min(3,340/Math.max(src.width,src.height));cv.width=Math.round(src.width*k);cv.height=Math.round(src.height*k);cv.getContext("2d").drawImage(src,0,0,cv.width,cv.height);
+  if(s.g)for(const[id,bg]of [["#edW","#ffffff"],["#edB","#000000"]]){const o=$(id);o.width=80;o.height=56;const c=o.getContext("2d");c.fillStyle=bg;c.fillRect(0,0,80,56);c.drawImage(src,0,0)}}
+function edChange(){const ov=S.over.get(edName);if(!ov)return;ov.fit=$("#edFit").value;ov.zoom=Number($("#edZoom").value);ov.dx=Number($("#edX").value);ov.dy=Number($("#edY").value);ov.fill=$("#edFill").checked;
+  if($("#edKnock").checked!==ov.knock){ov.knock=$("#edKnock").checked;ov.img=ov.knock?knockout(toCanvas(ov.orig),40):ov.orig}
+  ov.untouched=false;S.ver++;S.cv.set(edName,render(BYNAME.get(edName)));syncEditor();renderSoon()}
+["#edFit","#edZoom","#edX","#edY","#edFill","#edKnock"].forEach(id=>$(id).addEventListener("input",edChange));
+$("#edFile").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const cv=await loadImage(f),s=BYNAME.get(edName);setOverride(edName,cv,{raw:f.type==="image/png"?f:null});
+  if(s.kind==="menu"&&!(cv.width===s.w&&cv.height===s.h)){const ov=S.over.get(edName);ov.zoom=s.g?78:72}
+  S.ver++;S.cv.set(edName,render(s));syncEditor();renderSoon()}catch(x){setStatus("画像を読み込めませんでした")}});
+$("#edReset").addEventListener("click",()=>{S.over.delete(edName);S.shrink.delete(edName);S.ver++;S.cv.set(edName,render(BYNAME.get(edName)));syncEditor();renderSoon()});
+function closeEd(){$("#modal").hidden=true;const t=document.querySelector(`.tile[data-name="${edName}"]`);t&&t.focus()}
+$("#edClose").addEventListener("click",closeEd);$("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEd()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#modal").hidden)closeEd()});
+
+/* ============ プロンプト ============ */
+function prompts(){const ref=st.refImg?"添付した参考画像のキャラクターと同じ見た目・同じ画風で描いてください。\n":"";
+  const order=MENU.map((m,i)=>`${i+1}. ${m.label}${{home:"（家）",talk:"（吹き出し）",voom:"（動画の再生マーク）",shop:"（買い物袋）",call:"（電話の受話器）",news:"（新聞）",today:"（カレンダー）",wallet:"（財布）",apps:"（4つの四角）"}[m.key]}`).join("\n");
+  $("#pIcons").textContent=`LINE着せかえのメニューアイコン素材を1枚の画像で作ってください。
+${ref}【レイアウト】
+・正方形の画像を縦3×横3の9マスに等分し、各マスの中央にアイコンを1つずつ描く
+・並び順（左上から右へ、上の段から）：
+${order}
+【デザイン】
+・モチーフ：${st.motif}を、アイコンの形が分かる範囲でさりげなく組み合わせる
+・テイスト：${st.taste}
+・9個とも線の太さ・大きさ・色使いをそろえる
+・線の色 ${st.main}、塗りの色 ${st.accent} と ${st.sub}
+・誰が見ても機能が分かるシンプルな形にする
+【守ってほしいこと】
+・背景は真っ白（#FFFFFF）の無地。影・グラデーション・質感は入れない
+・文字、数字、ロゴ、マスの区切り線、枠線は入れない
+・各マスの外周に十分な余白を取り、隣のマスにはみ出さない`;
+  $("#pChar").textContent=`LINE着せかえで使うキャラクター画像を1枚作ってください。
+${ref}・モチーフ：${st.motif}
+・テイスト：${st.taste}
+・色：${st.main}、${st.accent}、${st.sub} を中心に
+・正面向き、顔がはっきり分かるバストアップ（または全身）
+・縦横比1:1、キャラクターを中央に大きく、周りに少し余白
+・背景は透過PNG（できない場合は真っ白の無地）
+・文字、ロゴ、影、背景の小物は入れない`;
+  $("#pOff").textContent=`さきほどのアイコン素材シートと同じ9個のアイコンを、同じ配置・同じ大きさで「未選択（OFF）」用に描き直してください。
+・形は変えずに、色だけを ${st.line} の単色の線にする
+・塗りは入れないか、ごく薄くする
+・背景は真っ白（#FFFFFF）の無地、文字・区切り線なし`}
+$$("[data-copy]").forEach(b=>b.addEventListener("click",async()=>{const t=$("#"+b.dataset.copy).textContent;try{await navigator.clipboard.writeText(t);b.textContent="コピーしました";setTimeout(()=>b.textContent="コピー",1500)}catch(e){const r=document.createRange();r.selectNodeContents($("#"+b.dataset.copy));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="選択しました"}}));
+
+/* ============ 入力の結びつけ ============ */
+function syncInputs(){for(const i of $$("[data-k]")){const k=i.dataset.k;if(i.type==="checkbox")i.checked=!!st[k];else i.value=st[k]}
+  for(const o of $$("[data-out]")){const k=o.dataset.out;o.textContent=k==="menuBgTop"?st[k]+"px":k==="lineW"?st[k]+"px":st[k]+"%"}
+  $("#preset").value=PRESETS[st.preset]&&["bg","line","main","accent","sub"].every(k=>PRESETS[st.preset][k]===st[k])?st.preset:"custom";
+  for(const c of $$("[data-count]")){const k=c.dataset.count,max={tTitle:40,tDesc:160,tCreator:50,tCopy:50}[k],n=zen(st[k]||"");c.textContent=`${n} / ${max}`;c.classList.toggle("over",n>max)}
+  $("#sheetTolOut").textContent=$("#sheetTol").value;prompts()}
+const VISUAL=new Set(["bg","line","main","accent","sub","charScale","iconStyle","marker","iconSize","lineW","gOutline","pattern","patternAlpha","passMode","passFour","passDigits","groupPair","menuBg","menuBgTop","talkBg","talkClear","thumbText"]);
+for(const i of $$("[data-k]"))i.addEventListener("input",()=>{const k=i.dataset.k;st[k]=i.type==="checkbox"?i.checked:i.type==="range"?Number(i.value):i.value;
+  if(["bg","line","main","accent","sub"].includes(k))st.preset="custom";if(k==="accent")drawCharThumb();save();syncInputs();if(VISUAL.has(k))renderSoon();else{drawStore();scheduleCheck()}});
+const ps=$("#preset");for(const[k,p]of Object.entries(PRESETS))ps.append(el("option",{value:k,text:p.label}));ps.append(el("option",{value:"custom",text:"カスタム"}));
+ps.addEventListener("change",()=>{const p=PRESETS[ps.value];if(!p)return;st.preset=ps.value;for(const k of ["bg","line","main","accent","sub"])st[k]=p[k];save();syncInputs();drawCharThumb();renderAll()});
+
+/* タブ */
+for(const b of $$("[role=tab]"))b.addEventListener("click",()=>{for(const x of $$("[role=tab]"))x.setAttribute("aria-selected",x===b);for(const p of $$("[data-panel]"))p.hidden=p.dataset.panel!==b.dataset.tab;try{sessionStorage.setItem(KEY+"-tab",b.dataset.tab)}catch(e){}});
+try{const t=sessionStorage.getItem(KEY+"-tab");if(t)document.querySelector(`[data-tab="${t}"]`)?.click()}catch(e){}
+
+/* 起動 */
+buildGroups();specTable();syncInputs();drawCharThumb();renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderAll());
+</script>
+</body>
+</html>
