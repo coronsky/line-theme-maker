@@ -176,6 +176,8 @@ table.spec td.mono{white-space:nowrap}
 .empty{color:var(--muted);font-size:13px;text-align:center;padding:16px;border:1px dashed var(--rule);border-radius:10px}
 .resume{position:fixed;left:0;right:0;bottom:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px);background:var(--ink);color:var(--paper)}
 .resume-in{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.envwarn{background:var(--warn-soft);color:var(--ink);border-bottom:1px solid var(--warn)}
+.envwarn .btn{text-decoration:none}
 .resume .btn:not(.primary){background:transparent;color:var(--paper);border-color:var(--muted)}
 .status{min-height:20px;font-size:13px;color:var(--muted)}
 footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:12px;color:var(--muted)}
@@ -352,6 +354,7 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
 </div>
 <footer class="foot">Mon Chein 着せかえ工房 — 非公式の制作ツールです。画像の処理はすべてこのブラウザの中で行い、どこにも送信しません。LINEは LY Corporation の商標です。</footer>
 
+<div class="envwarn" id="envwarn" hidden><div class="resume-in"><span id="envText"></span><a class="btn small primary" href="https://coronsky.github.io/line-theme-maker/" target="_blank" rel="noopener">公開ページで開く</a></div></div>
 <div class="resume" id="resume" hidden><div class="resume-in"><span id="resumeText"></span><span class="row"><button class="btn small primary" id="resumeYes" type="button">続きから始める</button><button class="btn small" id="resumeNo" type="button">新しく始める</button></span></div></div>
 
 <div class="modal" id="projModal" hidden>
@@ -362,7 +365,7 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
         <div class="row" style="flex-wrap:nowrap"><input id="projName" type="text" maxlength="40"><button class="btn primary" id="projSaveNew" type="button" style="flex:none">新しく保存</button></div></div>
       <p class="hint" style="margin:0">設定・キャラクター・差し替え画像・素材シートをまとめて、このブラウザの中に保存します。別のパソコンへ移すときや控えを残すときは、ファイルに書き出してください。</p>
       <div class="row"><button class="btn small" id="projFileOut" type="button">いまの作業をファイルに書き出す</button>
-        <label class="btn small" for="projFileIn" style="display:inline-block">ファイルから読み込む</label><input id="projFileIn" type="file" accept=".json,application/json" hidden></div>
+        <label class="btn small" for="projFileIn" style="display:inline-block">ファイルから読み込む</label><input id="projFileIn" type="file" accept=".json,.mctheme,application/json" hidden></div>
     </div>
     <ul class="projects" id="projList"></ul>
   </div>
@@ -466,7 +469,15 @@ function circle(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,Math.PI
 function blobToImg(b){return createImageBitmap(b)}
 function toCanvas(src){const c=mk(src.width,src.height);c.getContext("2d").drawImage(src,0,0);return c}
 function canvasBlob(c){return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(Error("PNGに変換できませんでした")),"image/png"))}
-function download(blob,name){const u=URL.createObjectURL(blob),a=el("a",{href:u,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+/* ダウンロード：保存ダイアログが使えればそれを使い、だめなら通常のダウンロード。
+   中身を画面に表示されないよう、必ず octet-stream で渡す（文字化け対策） */
+const FRAMED=(()=>{try{return window.top!==window.self}catch(e){return true}})();
+async function download(blob,name,kind){const bin=new Blob([blob],{type:"application/octet-stream"});
+  if(window.showSaveFilePicker&&!FRAMED){try{const ext=name.slice(name.lastIndexOf("."));
+      const h=await showSaveFilePicker({suggestedName:name,types:[{description:kind||"ファイル",accept:{[ext===".zip"?"application/zip":"application/json"]:[ext]}}]});
+      const w=await h.createWritable();await w.write(blob);await w.close();return h.name}
+    catch(e){if(e&&e.name==="AbortError")throw Object.assign(Error("保存をキャンセルしました"),{cancel:true})}}
+  const u=URL.createObjectURL(bin),a=el("a",{href:u,download:name,rel:"noopener"});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return name}
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
 
 /* 背景の透過（四辺からの塗りつぶし） */
@@ -705,20 +716,21 @@ async function readZip(blob){const u=new Uint8Array(await blob.arrayBuffer()),v=
 async function unzipEntry(en){if(en.method===0)return new Blob([en.data]);if(en.method===8){if(typeof DecompressionStream==="undefined")throw Error("このブラウザは圧縮ZIPの展開に対応していません");return await new Response(new Blob([en.data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob()}throw Error(en.name+" の圧縮方式("+en.method+")には対応していません")}
 
 async function exportZip(){const btn=$("#exportBtn");btn.disabled=true;setStatus("PNGを作成しています…");
-  try{await runChecks();const errs=S.issues.filter(i=>i.level==="err");const files=[];
+  try{await Promise.race([runChecks(),new Promise(r=>setTimeout(r,8000))]);const errs=S.issues.filter(i=>i.level==="err");const files=[];
     for(const s of activeSpecs()){const b=await getBlob(s.name);files.push({name:s.name,data:new Uint8Array(await b.arrayBuffer())})}
     const zip=makeZip(files),back=await readZip(zip),names=new Set(back.map(x=>x.name));
     if(back.length!==files.length||files.some(f=>!names.has(f.name)))throw Error("書き出したZIPの中身が一致しませんでした");
     for(const en of back){const f=files.find(f=>f.name===en.name);if(crc32(en.data)!==en.crc||en.data.length!==f.data.length)throw Error(en.name+" の検証に失敗しました")}
-    const nm=(st.zipName||"theme").replace(/[\\/:*?"<>|]/g,"_")+".zip";download(zip,nm);
+    const nm=await download(zip,(st.zipName||"theme").replace(/[\\/:*?"<>|]/g,"_")+".zip","LINE着せかえ ZIP");
     setStatus(`${nm}（${files.length}枚・${(zip.size/1024/1024).toFixed(2)}MB）を書き出し、中身を検証しました。`+(errs.length?`ただしエラーが${errs.length}件あります。チェックタブを確認してください。`:""))}
-  catch(e){setStatus("書き出しできませんでした："+e.message)}finally{btn.disabled=false}}
+  catch(e){setStatus(e.cancel?e.message:"書き出しできませんでした："+e.message)}finally{btn.disabled=false}}
 $("#exportBtn").addEventListener("click",exportZip);
 
 /* ============ 取り込み ============ */
 function setOverride(name,img,opts={}){const s=BYNAME.get(name),exact=img.width===s.w&&img.height===s.h,ok=s.flexible&&img.width>=60&&img.height>=60&&img.width<=s.w&&img.height<=s.h;
   S.over.set(name,{img,raw:(exact||ok)&&opts.raw?opts.raw:null,untouched:!!((exact||ok)&&opts.raw),fit:"contain",zoom:100,dx:0,dy:0,fill:!!s.opaque,knock:false,orig:img,...opts.extra})}
 async function importFiles(list){const rep=[],cand=[];
+  const pf=list.find(f=>/\.json$/i.test(f.name));if(pf){loadProjectFile(pf);list=list.filter(f=>f!==pf);if(!list.length)return}
   for(const f of list){const head=new Uint8Array(await f.slice(0,4).arrayBuffer()),isZip=head[0]===0x50&&head[1]===0x4b&&head[2]===3&&head[3]===4;
     if(isZip||/\.zip$/i.test(f.name)){try{const ents=await readZip(f);for(const en of ents){if(en.dir||/(^|\/)(__MACOSX|\._)/.test(en.name))continue;cand.push({name:en.name,get:()=>unzipEntry(en),from:f.name})}}catch(e){rep.push("✕ "+f.name+"："+e.message)}}
     else cand.push({name:f.name,get:async()=>f,from:null})}
@@ -891,15 +903,26 @@ async function exportProjectFile(p){try{p=p||await snapshot(S.projectName||defau
   const j={app:"monchein-theme-studio",v:1,name:p.name,savedAt:p.savedAt,st:p.st,charLabel:p.charLabel,char:p.char?await b2d(p.char):null,shrink:p.shrink,
     sheet:{...p.sheet,on:p.sheet.on?await b2d(p.sheet.on):null,off:p.sheet.off?await b2d(p.sheet.off):null},
     over:await Promise.all(p.over.map(async o=>({...o,orig:await b2d(o.orig),raw:o.raw?await b2d(o.raw):null})))};
-  const nm=(p.name||"theme").replace(/[\\/:*?"<>|]/g,"_")+".mctheme.json";download(new Blob([JSON.stringify(j)],{type:"application/json"}),nm);setStatus(nm+" を書き出しました")}catch(e){setStatus("書き出せませんでした："+e.message)}}
+  const nm=await download(new Blob([JSON.stringify(j)],{type:"application/json"}),(p.name||"theme").replace(/[\\/:*?"<>|]/g,"_")+".mctheme.json","着せかえ工房の保存ファイル");
+  setStatus(nm+" を書き出しました。読み込むときは「保存した作業」→「ファイルから読み込む」を使うか、このページにドロップしてください。")}catch(e){setStatus(e.cancel?e.message:"書き出せませんでした："+e.message)}}
 $("#projFileOut").addEventListener("click",()=>exportProjectFile());
-$("#projFileIn").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{const j=JSON.parse(await f.text());
-  if(j.app!=="monchein-theme-studio")throw Error("着せかえ工房の保存ファイルではありません");
+$("#projFileIn").addEventListener("change",e=>{const f=e.target.files[0];e.target.value="";if(f)loadProjectFile(f)});
+function isProjectFile(f){return/\.mctheme(\.json)?$|\.json$/i.test(f.name)}
+async function loadProjectFile(f){setStatus(f.name+" を読み込んでいます…");try{
+  let text=await f.text();text=text.replace(/^﻿/,"").trim();let j;
+  try{j=JSON.parse(text)}catch(x){throw Error(/^PK/.test(text)?"これはZIPファイルです。ZIPは「取り込み」タブで読み込んでください":"ファイルが途中で切れているか、壊れています（JSONとして読めません）")}
+  if(!j||j.app!=="monchein-theme-studio")throw Error("着せかえ工房の保存ファイルではありません");
   const p={name:j.name||f.name,savedAt:j.savedAt||Date.now(),st:j.st,charLabel:j.charLabel,char:await d2b(j.char),shrink:j.shrink||[],
     sheet:{...(j.sheet||{}),on:await d2b(j.sheet&&j.sheet.on),off:await d2b(j.sheet&&j.sheet.off)},
     over:await Promise.all((j.over||[]).map(async o=>({...o,orig:await d2b(o.orig),raw:o.raw?await d2b(o.raw):null})))};
-  await restore(p);const np=await snapshot(p.name);np.id="p"+Date.now().toString(36);await dbPut(np);S.projectId=np.id;S.projectName=np.name;closeProj();setStatus(`「${p.name}」をファイルから読み込み、保存一覧にも追加しました`)}
-  catch(x){setStatus("読み込めませんでした："+x.message)}});
+  await restore(p);closeProj();S.projectName=p.name;
+  try{const np=await snapshot(p.name);np.id="p"+Date.now().toString(36);await dbPut(np);S.projectId=np.id;setStatus(`「${p.name}」をファイルから読み込み、保存一覧にも追加しました`)}
+  catch(x){S.projectId=null;setStatus(`「${p.name}」を読み込みました（このブラウザでは保存一覧に追加できませんでした）`)}}
+  catch(x){setStatus("読み込めませんでした："+x.message);const r=$("#importReport");if(r){r.hidden=false;r.textContent="読み込めませんでした："+x.message}}}
+/* 保存ファイルはページのどこにドロップしても読み込む */
+document.addEventListener("dragover",e=>{if([...(e.dataTransfer?.items||[])].some(i=>i.kind==="file"))e.preventDefault()});
+document.addEventListener("drop",e=>{const f=[...(e.dataTransfer?.files||[])];if(!f.length)return;e.preventDefault();const proj=f.find(isProjectFile);
+  if(proj&&!e.target.closest("#drop"))loadProjectFile(proj);else if(!e.target.closest("#drop")){document.querySelector('[data-tab="import"]').click();importFiles(f)}});
 
 /* 自動保存：操作してから4秒後に、最後の状態を1つだけ残す */
 let autoTimer=null;
@@ -908,8 +931,15 @@ const arm=()=>{S.armed=true};["input","change","drop"].forEach(t=>document.addEv
 async function offerResume(){try{const a=await dbGet(AUTO_ID);if(!a)return;$("#resumeText").textContent=`前回の作業（${fmtDate(a.savedAt)}）が残っています。`;$("#resume").hidden=false;
   $("#resumeYes").onclick=async()=>{$("#resume").hidden=true;await restore(a);setStatus("前回の作業を呼び出しました")};$("#resumeNo").onclick=()=>{$("#resume").hidden=true}}catch(e){}}
 
+/* 保存・ダウンロードが使えない場所で開かれていないか確認 */
+async function checkEnv(){let why="";
+  if(FRAMED)why="プレビュー画面の中で開いているため、ZIPのダウンロードや途中保存が正しく動かないことがあります（ZIPの中身が文字化けして表示される、保存が消える など）。";
+  else{try{const db=await idb();db.close()}catch(e){why="このブラウザでは途中保存が使えません（プライベートウィンドウやサイトデータのブロックが原因のことがあります）。作業はファイルに書き出して残してください。"}}
+  if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist()}catch(e){}}
+  if(why){$("#envText").textContent=why;$("#envwarn").hidden=false;document.querySelector(".top").before($("#envwarn"))}}
+
 /* 起動 */
-buildGroups();specTable();syncInputs();drawCharThumb();renderAll();offerResume();
+buildGroups();specTable();syncInputs();drawCharThumb();renderAll();offerResume();checkEnv();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderAll());
 </script>
 </body>
