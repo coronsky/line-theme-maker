@@ -11,7 +11,7 @@ let dog=null;
 const menu=[["29","30","home"],["03","04","chat"],["33","34","voom"],["35","36","shop"],["07","08","call"],["25","26","news"],["31","32","today"],["27","28","wallet"],["37","38","apps"]];
 const defs=[];
 function add(name,w,h,kind,extra={}){defs.push({name,w,h,kind,...extra})}
-add("ios_thumbnail.png",200,284,"thumb");add("android_thumbnail.png",136,202,"thumb");add("store_thumbnail.png",198,278,"thumb");
+add("ios_thumbnail.png",200,284,"thumb");
 for(const [off,on,type] of menu){add("i_"+off+".png",128,150,"menu",{type,on:false});add("i_"+on+".png",128,150,"menu",{type,on:true});add("i_"+off+"_g.png",80,56,"menu26",{type,on:false});add("i_"+on+"_g.png",80,56,"menu26",{type,on:true})}
 add("i_11.png",1472,150,"menubg");
 for(let i=12;i<=19;i++){add("i_"+i+".png",120,120,"pass",{number:Math.floor((i-12)/2)+1,on:i%2===1});add("a_"+i+".png",116,116,"pass",{number:Math.floor((i-12)/2)+1,on:i%2===1})}
