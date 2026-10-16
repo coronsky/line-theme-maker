@@ -165,6 +165,18 @@ table.spec td.mono{white-space:nowrap}
 .ed .stage canvas{max-width:100%;max-height:340px;image-rendering:auto}
 .ed .bgs{display:flex;gap:6px}
 .ed .bgs canvas{width:56px;height:auto;border-radius:6px;border:1px solid var(--rule)}
+.projects{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.proj{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:8px 10px}
+.proj.current{border-color:var(--accent);background:var(--accent-soft)}
+.proj img,.proj .noimg{width:52px;height:73px;object-fit:cover;border-radius:5px;background:var(--paper)}
+.proj .pn{font-weight:700;overflow-wrap:anywhere}
+.proj .pd{font-size:12px;color:var(--muted)}
+.proj .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+@media (max-width:520px){.proj{grid-template-columns:44px minmax(0,1fr)}.proj .acts{grid-column:1/-1;justify-content:flex-start}}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:16px;border:1px dashed var(--rule);border-radius:10px}
+.resume{position:fixed;left:0;right:0;bottom:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px);background:var(--ink);color:var(--paper)}
+.resume-in{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.resume .btn:not(.primary){background:transparent;color:var(--paper);border-color:var(--muted)}
 .status{min-height:20px;font-size:13px;color:var(--muted)}
 footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:12px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -176,6 +188,8 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
   <div class="spacer"></div>
   <span id="topCount" class="pill mono">— 枚</span>
   <span id="topCheck" class="pill">チェック中…</span>
+  <button id="saveBtn" class="btn" type="button" title="Ctrl+S でも保存できます">途中保存</button>
+  <button id="openProjects" class="btn" type="button">保存した作業</button>
   <button id="exportBtn" class="btn primary" type="button">ZIPを書き出す</button>
 </div></header>
 
@@ -338,6 +352,22 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
 </div>
 <footer class="foot">Mon Chein 着せかえ工房 — 非公式の制作ツールです。画像の処理はすべてこのブラウザの中で行い、どこにも送信しません。LINEは LY Corporation の商標です。</footer>
 
+<div class="resume" id="resume" hidden><div class="resume-in"><span id="resumeText"></span><span class="row"><button class="btn small primary" id="resumeYes" type="button">続きから始める</button><button class="btn small" id="resumeNo" type="button">新しく始める</button></span></div></div>
+
+<div class="modal" id="projModal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="projTitle">
+    <div class="row" style="justify-content:space-between"><h2 id="projTitle" style="font-size:17px">保存した作業</h2><button class="btn small" id="projClose" type="button">閉じる</button></div>
+    <div class="box" style="display:grid;gap:10px">
+      <div class="field"><label for="projName">いまの作業に名前を付けて保存</label>
+        <div class="row" style="flex-wrap:nowrap"><input id="projName" type="text" maxlength="40"><button class="btn primary" id="projSaveNew" type="button" style="flex:none">新しく保存</button></div></div>
+      <p class="hint" style="margin:0">設定・キャラクター・差し替え画像・素材シートをまとめて、このブラウザの中に保存します。別のパソコンへ移すときや控えを残すときは、ファイルに書き出してください。</p>
+      <div class="row"><button class="btn small" id="projFileOut" type="button">いまの作業をファイルに書き出す</button>
+        <label class="btn small" for="projFileIn" style="display:inline-block">ファイルから読み込む</label><input id="projFileIn" type="file" accept=".json,application/json" hidden></div>
+    </div>
+    <ul class="projects" id="projList"></ul>
+  </div>
+</div>
+
 <div class="modal" id="modal" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="edTitle">
     <div class="row" style="justify-content:space-between"><div><h2 id="edTitle" style="font-size:17px"></h2><div class="mono hint" id="edMeta" style="margin:0"></div></div><button class="btn small" id="edClose" type="button">閉じる</button></div>
@@ -421,7 +451,7 @@ try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="obje
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
 
 /* ============ 状態 ============ */
-const S={char:null,charGray:null,charLabel:"サンプルのビション（仮）",over:new Map(),sheet:{on:null,off:null},cv:new Map(),blob:new Map(),shrink:new Map(),issues:[],ver:0};
+const S={char:null,charUser:false,charGray:null,charLabel:"サンプルのビション（仮）",projectId:null,projectName:"",over:new Map(),sheet:{on:null,off:null},cv:new Map(),blob:new Map(),shrink:new Map(),issues:[],ver:0};
 
 /* ============ 小道具 ============ */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -545,7 +575,7 @@ async function getBlob(name){const hit=S.blob.get(name);if(hit&&hit.ver===S.ver)
 
 /* ============ 全体の再描画 ============ */
 function renderAll(only){S.ver++;for(const s of SPEC)if(!only||only.includes(s.name))S.cv.set(s.name,render(s));
-  updateTiles();drawMocks();scheduleCheck();$("#topCount").textContent=activeSpecs().length+" 枚";$("#tabAllN").textContent=activeSpecs().length}
+  updateTiles();drawMocks();scheduleCheck();scheduleAutosave();$("#topCount").textContent=activeSpecs().length+" 枚";$("#tabAllN").textContent=activeSpecs().length}
 const renderSoon=debounce(()=>renderAll(),90);
 
 /* ============ プレビュー（スマホ画面） ============ */
@@ -734,7 +764,7 @@ function drawCharThumb(){const c=$("#charThumb").getContext("2d");c.clearRect(0,
 let charFile=null;
 async function setChar(){if(!charFile)return;try{let cv=await loadImage(charFile);if($("#charKnock").checked)cv=knockout(cv,40);cv=trim(cv)||cv;
   const max=1400,k=Math.min(1,max/Math.max(cv.width,cv.height));if(k<1){const o=mk(cv.width*k,cv.height*k);o.getContext("2d").drawImage(cv,0,0,o.width,o.height);cv=o}
-  S.char=cv;S.charGray=null;S.charLabel=charFile.name;drawCharThumb();renderAll();setStatus(charFile.name+" をキャラクターにしました")}catch(e){setStatus("画像を読み込めませんでした："+e.message)}}
+  S.char=cv;S.charUser=true;S.charGray=null;S.charLabel=charFile.name;drawCharThumb();renderAll();setStatus(charFile.name+" をキャラクターにしました")}catch(e){setStatus("画像を読み込めませんでした："+e.message)}}
 $("#charFile").addEventListener("change",e=>{charFile=e.target.files[0]||null;setChar()});
 $("#charKnock").addEventListener("change",()=>setChar());
 
@@ -799,7 +829,7 @@ function syncInputs(){for(const i of $$("[data-k]")){const k=i.dataset.k;if(i.ty
   $("#sheetTolOut").textContent=$("#sheetTol").value;prompts()}
 const VISUAL=new Set(["bg","line","main","accent","sub","charScale","iconStyle","marker","iconSize","lineW","gOutline","pattern","patternAlpha","passMode","passFour","passDigits","groupPair","menuBg","menuBgTop","talkBg","talkClear","thumbText"]);
 for(const i of $$("[data-k]"))i.addEventListener("input",()=>{const k=i.dataset.k;st[k]=i.type==="checkbox"?i.checked:i.type==="range"?Number(i.value):i.value;
-  if(["bg","line","main","accent","sub"].includes(k))st.preset="custom";if(k==="accent")drawCharThumb();save();syncInputs();if(VISUAL.has(k))renderSoon();else{drawStore();scheduleCheck()}});
+  if(["bg","line","main","accent","sub"].includes(k))st.preset="custom";if(k==="accent")drawCharThumb();save();syncInputs();if(VISUAL.has(k))renderSoon();else{drawStore();scheduleCheck();scheduleAutosave()}});
 const ps=$("#preset");for(const[k,p]of Object.entries(PRESETS))ps.append(el("option",{value:k,text:p.label}));ps.append(el("option",{value:"custom",text:"カスタム"}));
 ps.addEventListener("change",()=>{const p=PRESETS[ps.value];if(!p)return;st.preset=ps.value;for(const k of ["bg","line","main","accent","sub"])st[k]=p[k];save();syncInputs();drawCharThumb();renderAll()});
 
@@ -807,8 +837,79 @@ ps.addEventListener("change",()=>{const p=PRESETS[ps.value];if(!p)return;st.pres
 for(const b of $$("[role=tab]"))b.addEventListener("click",()=>{for(const x of $$("[role=tab]"))x.setAttribute("aria-selected",x===b);for(const p of $$("[data-panel]"))p.hidden=p.dataset.panel!==b.dataset.tab;try{sessionStorage.setItem(KEY+"-tab",b.dataset.tab)}catch(e){}});
 try{const t=sessionStorage.getItem(KEY+"-tab");if(t)document.querySelector(`[data-tab="${t}"]`)?.click()}catch(e){}
 
+/* ============ 途中保存・呼び出し（IndexedDB ＋ ファイル） ============ */
+const DB_NAME="monchein-theme-studio",DB_STORE="projects",AUTO_ID="autosave";
+function idb(){return new Promise((res,rej)=>{if(!("indexedDB"in window))return rej(Error("このブラウザは保存に対応していません"));const r=indexedDB.open(DB_NAME,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(DB_STORE))r.result.createObjectStore(DB_STORE,{keyPath:"id"})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error||Error("保存領域を開けませんでした"))})}
+async function dbDo(mode,fn){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,mode),st0=tx.objectStore(DB_STORE),req=fn(st0);
+  tx.oncomplete=()=>{db.close();res(req&&req.result)};tx.onerror=tx.onabort=()=>{db.close();rej(tx.error||Error("保存できませんでした"))}})}
+const dbPut=p=>dbDo("readwrite",s=>s.put(p)),dbGet=id=>dbDo("readonly",s=>s.get(id)),dbAll=()=>dbDo("readonly",s=>s.getAll()),dbDel=id=>dbDo("readwrite",s=>s.delete(id));
+
+async function snapshot(name){const over=[];for(const[n,ov]of S.over)over.push({name:n,orig:await canvasBlob(ov.orig||ov.img),raw:ov.raw||null,untouched:!!ov.untouched,fit:ov.fit,zoom:ov.zoom,dx:ov.dx,dy:ov.dy,fill:!!ov.fill,knock:!!ov.knock});
+  return{v:1,name,savedAt:Date.now(),st:{...st},char:S.charUser&&S.char?await canvasBlob(S.char):null,charLabel:S.charLabel,over,shrink:[...S.shrink],
+    sheet:{on:sheetFiles.on||null,off:sheetFiles.off||null,knock:$("#sheetKnock").checked,tol:Number($("#sheetTol").value),offMode:$("#offMode").value},
+    thumb:await canvasBlob(S.cv.get("store_thumbnail.png")),count:S.over.size}}
+async function restore(p){S.loading=true;try{
+  st={...DEF};for(const k of Object.keys(DEF))if(p.st&&k in p.st&&typeof p.st[k]===typeof DEF[k])st[k]=p.st[k];save();
+  S.char=p.char?await loadImage(p.char):null;S.charUser=!!p.char;S.charGray=null;S.charLabel=p.char?(p.charLabel||"保存したキャラクター"):"サンプルのビション（仮）";charFile=null;$("#charFile").value="";$("#charKnock").checked=false;
+  S.over.clear();for(const o of p.over||[]){const orig=await loadImage(o.orig);S.over.set(o.name,{img:o.knock?knockout(toCanvas(orig),40):orig,orig,raw:o.raw||null,untouched:!!o.untouched,fit:o.fit||"contain",zoom:o.zoom??100,dx:o.dx??0,dy:o.dy??0,fill:!!o.fill,knock:!!o.knock})}
+  S.shrink=new Map(p.shrink||[]);
+  const sh=p.sheet||{};$("#sheetKnock").checked=sh.knock!==false;$("#sheetTol").value=sh.tol||40;$("#offMode").value=sh.offMode||"gray";$("#sheetOn").value="";$("#sheetOff").value="";
+  sheetFiles={on:sh.on||null,off:sh.off||null};S.sheet={on:null,off:null};$("#sheetPreview").replaceChildren();$("#importReport").hidden=true;
+  syncInputs();drawCharThumb();if(sheetFiles.on)await rebuildSheet();else renderAll()}finally{S.loading=false}}
+function fmtDate(t){const d=new Date(t);return`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+function defaultName(){return(st.tTitle||"着せかえ").slice(0,30)}
+
+async function quickSave(){const btn=$("#saveBtn");btn.disabled=true;try{
+    if(!S.projectId){S.projectId="p"+Date.now().toString(36);S.projectName=defaultName()}
+    const p=await snapshot(S.projectName);p.id=S.projectId;await dbPut(p);setStatus(`「${S.projectName}」を保存しました（${fmtDate(p.savedAt)}）`);btn.textContent="保存しました";setTimeout(()=>btn.textContent="途中保存",1600)}
+  catch(e){setStatus("保存できませんでした："+e.message)}finally{btn.disabled=false}}
+async function saveNew(){const name=$("#projName").value.trim()||defaultName();try{const p=await snapshot(name);p.id="p"+Date.now().toString(36);await dbPut(p);S.projectId=p.id;S.projectName=name;setStatus(`「${name}」として保存しました`);listProjects()}catch(e){setStatus("保存できませんでした："+e.message)}}
+
+const thumbURLs=[];
+async function listProjects(){const ul=$("#projList");thumbURLs.splice(0).forEach(u=>URL.revokeObjectURL(u));let all=[];
+  try{all=(await dbAll()).sort((a,b)=>b.savedAt-a.savedAt)}catch(e){ul.replaceChildren(el("li",{class:"empty",text:"保存領域を開けませんでした："+e.message}));return}
+  ul.replaceChildren();if(!all.length){ul.append(el("li",{class:"empty",text:"まだ保存した作業はありません。上のボタンか「途中保存」で保存できます。"}));return}
+  for(const p of all){const auto=p.id===AUTO_ID,u=p.thumb?URL.createObjectURL(p.thumb):null;if(u)thumbURLs.push(u);
+    const del=el("button",{class:"btn small",type:"button",text:"削除"});
+    del.addEventListener("click",async()=>{if(del.dataset.armed){await dbDel(p.id);if(S.projectId===p.id)S.projectId=null;setStatus(`「${p.name}」を削除しました`);listProjects()}else{del.dataset.armed="1";del.textContent="本当に削除";del.classList.add("primary");setTimeout(()=>{if(del.isConnected){delete del.dataset.armed;del.textContent="削除";del.classList.remove("primary")}},3000)}});
+    const acts=el("div",{class:"acts"},
+      el("button",{class:"btn small primary",type:"button",text:"呼び出す",onclick:async()=>{try{setStatus("呼び出しています…");await restore(p);S.projectId=auto?null:p.id;S.projectName=auto?"":p.name;closeProj();setStatus(`「${auto?"自動保存":p.name}」を呼び出しました（${fmtDate(p.savedAt)}の状態）`)}catch(e){setStatus("呼び出せませんでした："+e.message)}}}),
+      el("button",{class:"btn small",type:"button",text:"ファイルに書き出す",onclick:()=>exportProjectFile(p)}),del);
+    ul.append(el("li",{class:"proj"+(p.id===S.projectId?" current":"")},u?el("img",{src:u,alt:""}):el("div",{class:"noimg"}),
+      el("div",{},el("div",{class:"pn",text:auto?"自動保存（最後の作業）":p.name}),el("div",{class:"pd",text:`${fmtDate(p.savedAt)}　差し替え${p.count||0}枚${p.char?"・キャラ画像あり":""}${p.sheet&&p.sheet.on?"・素材シートあり":""}${p.id===S.projectId?"　いま開いている作業":""}`})),acts))}}
+function openProj(){$("#projName").value=S.projectName||defaultName();$("#projModal").hidden=false;listProjects();$("#projClose").focus()}
+function closeProj(){$("#projModal").hidden=true;thumbURLs.splice(0).forEach(u=>URL.revokeObjectURL(u))}
+$("#saveBtn").addEventListener("click",quickSave);$("#openProjects").addEventListener("click",openProj);$("#projClose").addEventListener("click",closeProj);
+$("#projModal").addEventListener("click",e=>{if(e.target.id==="projModal")closeProj()});$("#projSaveNew").addEventListener("click",saveNew);
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();quickSave()}if(e.key==="Escape"&&!$("#projModal").hidden)closeProj()});
+
+/* ファイルへの書き出し・読み込み（画像は data URL にして1つのJSONへ） */
+const b2d=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)});
+const d2b=d=>d?fetch(d).then(r=>r.blob()):null;
+async function exportProjectFile(p){try{p=p||await snapshot(S.projectName||defaultName());
+  const j={app:"monchein-theme-studio",v:1,name:p.name,savedAt:p.savedAt,st:p.st,charLabel:p.charLabel,char:p.char?await b2d(p.char):null,shrink:p.shrink,
+    sheet:{...p.sheet,on:p.sheet.on?await b2d(p.sheet.on):null,off:p.sheet.off?await b2d(p.sheet.off):null},
+    over:await Promise.all(p.over.map(async o=>({...o,orig:await b2d(o.orig),raw:o.raw?await b2d(o.raw):null})))};
+  const nm=(p.name||"theme").replace(/[\\/:*?"<>|]/g,"_")+".mctheme.json";download(new Blob([JSON.stringify(j)],{type:"application/json"}),nm);setStatus(nm+" を書き出しました")}catch(e){setStatus("書き出せませんでした："+e.message)}}
+$("#projFileOut").addEventListener("click",()=>exportProjectFile());
+$("#projFileIn").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{const j=JSON.parse(await f.text());
+  if(j.app!=="monchein-theme-studio")throw Error("着せかえ工房の保存ファイルではありません");
+  const p={name:j.name||f.name,savedAt:j.savedAt||Date.now(),st:j.st,charLabel:j.charLabel,char:await d2b(j.char),shrink:j.shrink||[],
+    sheet:{...(j.sheet||{}),on:await d2b(j.sheet&&j.sheet.on),off:await d2b(j.sheet&&j.sheet.off)},
+    over:await Promise.all((j.over||[]).map(async o=>({...o,orig:await d2b(o.orig),raw:o.raw?await d2b(o.raw):null})))};
+  await restore(p);const np=await snapshot(p.name);np.id="p"+Date.now().toString(36);await dbPut(np);S.projectId=np.id;S.projectName=np.name;closeProj();setStatus(`「${p.name}」をファイルから読み込み、保存一覧にも追加しました`)}
+  catch(x){setStatus("読み込めませんでした："+x.message)}});
+
+/* 自動保存：操作してから4秒後に、最後の状態を1つだけ残す */
+let autoTimer=null;
+function scheduleAutosave(){if(!S.armed||S.loading)return;clearTimeout(autoTimer);autoTimer=setTimeout(async()=>{try{const p=await snapshot(S.projectName||defaultName());p.id=AUTO_ID;await dbPut(p)}catch(e){}},4000)}
+const arm=()=>{S.armed=true};["input","change","drop"].forEach(t=>document.addEventListener(t,arm,{capture:true}));
+async function offerResume(){try{const a=await dbGet(AUTO_ID);if(!a)return;$("#resumeText").textContent=`前回の作業（${fmtDate(a.savedAt)}）が残っています。`;$("#resume").hidden=false;
+  $("#resumeYes").onclick=async()=>{$("#resume").hidden=true;await restore(a);setStatus("前回の作業を呼び出しました")};$("#resumeNo").onclick=()=>{$("#resume").hidden=true}}catch(e){}}
+
 /* 起動 */
-buildGroups();specTable();syncInputs();drawCharThumb();renderAll();
+buildGroups();specTable();syncInputs();drawCharThumb();renderAll();offerResume();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderAll());
 </script>
 </body>
