@@ -1,4 +1,4 @@
-# Mon Chein 着せかえ工房（line-theme-maker）
+# MonChien 着せかえ工房（line-theme-maker）
 
 LINE着せかえの提出用画像62枚を、ブラウザだけで作る・確認する・ZIPにするツールです。`index.html` を開くだけで動きます（外部ライブラリなし）。
 

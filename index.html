@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Mon Chein 着せかえ工房</title>
+<title>MonChien 着せかえ工房</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -186,7 +186,7 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
 </head>
 <body>
 <header class="top"><div class="top-in">
-  <div class="brand"><h1>Mon Chein 着せかえ工房</h1><small>LINE着せかえ 提出用62枚を作る</small></div>
+  <div class="brand"><h1>MonChien 着せかえ工房</h1><small>LINE着せかえ 提出用62枚を作る</small></div>
   <div class="spacer"></div>
   <span id="topCount" class="pill mono">— 枚</span>
   <span id="topCheck" class="pill">チェック中…</span>
@@ -352,7 +352,7 @@ footer.foot{max-width:1400px;margin:0 auto;padding-block:0 30px;padding-left:max
   <div id="status" class="status" role="status" aria-live="polite"></div>
 </main>
 </div>
-<footer class="foot">Mon Chein 着せかえ工房 — 非公式の制作ツールです。画像の処理はすべてこのブラウザの中で行い、どこにも送信しません。LINEは LY Corporation の商標です。</footer>
+<footer class="foot">MonChien 着せかえ工房 — 非公式の制作ツールです。画像の処理はすべてこのブラウザの中で行い、どこにも送信しません。LINEは LY Corporation の商標です。</footer>
 
 <div class="envwarn" id="envwarn" hidden><div class="resume-in"><span id="envText"></span><a class="btn small primary" href="https://coronsky.github.io/line-theme-maker/" target="_blank" rel="noopener">公開ページで開く</a></div></div>
 <div class="resume" id="resume" hidden><div class="resume-in"><span id="resumeText"></span><span class="row"><button class="btn small primary" id="resumeYes" type="button">続きから始める</button><button class="btn small" id="resumeNo" type="button">新しく始める</button></span></div></div>
@@ -445,7 +445,7 @@ const PRESETS={
 const DEF={preset:"milk",...PRESETS.milk,charScale:90,iconStyle:"line",marker:"blob",iconSize:78,lineW:7,gOutline:true,
   pattern:"paws",patternAlpha:45,passMode:"char",passFour:false,passDigits:false,groupPair:true,
   menuBg:true,menuBgTop:0,talkBg:true,talkClear:false,thumbText:"bichon days",
-  tTitle:"ふわり、ビションのやさしい日々",tDesc:"まんまるビションと過ごす、ふんわり穏やかな毎日。ミルクホワイトとくすみグリーンのシンプルな着せかえです。",tCreator:"Mon Chein",tCopy:"(c)Mon Chein",zipName:"mon-chein-theme",
+  tTitle:"ふわり、ビションのやさしい日々",tDesc:"まんまるビションと過ごす、ふんわり穏やかな毎日。ミルクホワイトとくすみグリーンのシンプルな着せかえです。",tCreator:"MonChien",tCopy:"(c)MonChien",zipName:"monchien-theme",
   motif:"白いビションフリーゼ（ふわふわの丸い顔）",taste:"韓国ミニマル、やさしい細めの線、くすみカラー",refImg:true};
 delete DEF.label;
 const KEY="monchein-theme-studio-v1";
@@ -601,7 +601,7 @@ function drawList(){const cv=$("#mockList"),{c,W,H}=phoneBase(cv),ink=lum(st.bg)
   c.fillStyle=ink;c.font="700 22px sans-serif";c.textAlign="left";c.fillText("トーク",20,72);
   const prof=[S.cv.get("i_20.png"),S.cv.get("i_21.png")];
   for(let i=0;i<7;i++){const y=104+i*66;c.save();c.beginPath();c.arc(44,y+24,24,0,Math.PI*2);c.clip();c.drawImage(prof[i%3===1?1:0],20,y,48,48);c.restore();
-    c.fillStyle=ink;c.font="700 14px sans-serif";c.fillText(["ももちゃん","わんこ部","Mon Chein","ここあ","おさんぽ会","ママ","ゆき"][i],80,y+15);
+    c.fillStyle=ink;c.font="700 14px sans-serif";c.fillText(["ももちゃん","わんこ部","MonChien","ここあ","おさんぽ会","ママ","ゆき"][i],80,y+15);
     c.fillStyle=sub;c.font="12px sans-serif";c.fillText(["またね〜","明日の集合は10時","ご注文ありがとうございます","写真送るね","雨なら中止です","了解！","🐶"][i],80,y+36)}
   const tabs=TABSETS[mockState.set];listHit=[];
   if(mockState.mode==="classic"){const s=(W/5)/128,bh=150*s,y=H-bh-16;c.fillStyle=st.bg;c.fillRect(0,y,W,bh+16);
